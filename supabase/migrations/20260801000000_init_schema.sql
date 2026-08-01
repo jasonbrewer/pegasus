@@ -46,25 +46,56 @@ create trigger profiles_set_updated_at
 
 create type public.role_category as enum ('on-location', 'regional', 'remote');
 
+-- role_group buckets roles for UI grouping. Named role_group rather than
+-- "group" because GROUP is a reserved word in Postgres.
 create table public.roles (
   slug text primary key,
   label text not null,
   category public.role_category not null,
+  role_group text not null,
   sort_order int not null default 0
 );
 
-insert into public.roles (slug, label, category, sort_order) values
-  ('director-of-photography', 'Director of Photography (DP)', 'regional', 10),
-  ('camera-operator',         'Camera Operator',               'on-location', 20),
-  ('gaffer',                  'Gaffer',                        'on-location', 30),
-  ('grip',                    'Grip',                          'on-location', 40),
-  ('audio-sound-mixer',       'Audio / Sound Mixer',           'on-location', 50),
-  ('drone-aerial-operator',   'Drone / Aerial Operator',       'regional', 60),
-  ('editor',                  'Editor',                        'remote', 70),
-  ('colorist',                'Colorist',                      'remote', 80),
-  ('motion-vfx',              'Motion / VFX',                  'remote', 90),
-  ('producer',                'Producer',                      'regional', 100),
-  ('production-assistant',    'Production Assistant (PA)',     'on-location', 110);
+create index roles_role_group_idx on public.roles (role_group);
+
+insert into public.roles (slug, label, category, role_group, sort_order) values
+  -- Camera
+  ('director-of-photography',       'Director of Photography (DP)',       'regional',    'Camera', 10),
+  ('camera-operator',               'Camera Operator',                    'on-location', 'Camera', 20),
+  ('second-shooter',                '2nd Shooter / Second Camera',        'on-location', 'Camera', 30),
+  ('eng-run-and-gun-shooter',       'ENG / Run-and-Gun Shooter',          'on-location', 'Camera', 40),
+  ('photographer',                  'Photographer',                       'on-location', 'Camera', 50),
+  ('dit',                           'DIT (Digital Imaging Technician)',   'on-location', 'Camera', 60),
+  ('drone-aerial-operator',         'Drone / Aerial Operator (Part 107)', 'regional',    'Camera', 70),
+
+  -- Lighting & Grip
+  ('gaffer',                        'Gaffer',                             'on-location', 'Lighting & Grip', 80),
+  ('grip',                          'Grip',                               'on-location', 'Lighting & Grip', 90),
+
+  -- Audio
+  ('sound-mixer',                   'Sound Mixer / Audio Engineer',       'on-location', 'Audio', 100),
+  ('voiceover-artist',              'Voiceover Artist',                   'remote',      'Audio', 110),
+
+  -- Production
+  ('producer',                      'Producer',                           'regional',    'Production', 120),
+  ('production-assistant',          'Production Assistant (PA)',          'on-location', 'Production', 130),
+  ('teleprompter-operator',         'Teleprompter Operator',              'on-location', 'Production', 140),
+  ('livestream-broadcast-technician','Livestream / Broadcast Technician', 'on-location', 'Production', 150),
+
+  -- Post-Production
+  ('editor',                        'Editor',                             'remote',      'Post-Production', 160),
+  ('social-vertical-video-editor',  'Social / Vertical Video Editor',     'remote',      'Post-Production', 170),
+  ('colorist',                      'Colorist',                           'remote',      'Post-Production', 180),
+  ('motion-graphics-vfx',           'Motion Graphics / VFX Designer',     'remote',      'Post-Production', 190),
+
+  -- Talent & Creative
+  ('on-camera-host',                'On-Camera Host / Talent',            'on-location', 'Talent & Creative', 200),
+  ('hair-makeup-artist',            'Hair / Makeup Artist (HMUA)',        'on-location', 'Talent & Creative', 210),
+  ('scriptwriter',                  'Scriptwriter',                       'remote',      'Talent & Creative', 220),
+
+  -- Full-Service
+  ('full-service-production',       'Full-Service Production',            'regional',    'Full-Service', 230),
+  ('shooter-editor',                'Shooter-Editor / One-Person Band',   'regional',    'Full-Service', 240);
 
 -- ---------------------------------------------------------------------------
 -- freelancer_profiles — extends profiles for role = 'freelancer'

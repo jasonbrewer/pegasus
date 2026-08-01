@@ -34,6 +34,7 @@ export interface Database {
           slug: string;
           label: string;
           category: RoleCategory;
+          role_group: string;
           sort_order: number;
         };
         Insert: Database["public"]["Tables"]["roles"]["Row"];
