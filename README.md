@@ -145,14 +145,20 @@ proximity queries. Matching is soft, not a hard wall:
 - Live Stripe payments/escrow
 - Messaging, notifications, multi-metro expansion tooling
 
-## Note on the role taxonomy
+## Role taxonomy
 
-The product brief left the role list as `[FILL IN]` and pointed to an example list as the shape to
-follow. This scaffold seeds that example list verbatim (DP, Camera Operator, Gaffer, Grip, Audio/
-Sound Mixer, Drone/Aerial Operator, Editor, Colorist, Motion/VFX, Producer, PA) in
-`supabase/migrations/20260801000000_init_schema.sql` and mirrors it in `src/lib/roles.ts`. Treat it
-as a placeholder — swap in the real taxonomy before launch (it's a one-table edit plus updating the
-mirrored constant).
+24 roles across 7 groups (Camera, Lighting & Grip, Audio, Production, Post-Production, Talent &
+Creative, Full-Service). Each role carries a `category` — `on-location`, `regional`, or `remote` —
+which drives the geo matching described above, plus a `role_group` used purely for UI bucketing.
+
+The taxonomy is defined in two places that must stay in sync:
+
+- `supabase/migrations/20260801000000_init_schema.sql` — the `roles` table seed (source of truth)
+- `src/lib/roles.ts` — the client-side mirror, plus `ROLE_GROUPS` / `ROLES_BY_GROUP` helpers for
+  grouped rendering
+
+The column is named `role_group` rather than `group` because `GROUP` is a reserved word in
+Postgres and would need quoting at every call site.
 
 ## Deploy
 
