@@ -23,7 +23,13 @@ export default async function EmployerDashboardPage() {
 
   const { data: employer } = await supabase
     .from("employer_profiles")
-    .select("company_name, billing_email")
+    .select("company_name")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  const { data: billing } = await supabase
+    .from("employer_billing")
+    .select("billing_email")
     .eq("profile_id", user.id)
     .maybeSingle();
 
@@ -56,7 +62,7 @@ export default async function EmployerDashboardPage() {
       <Card>
         <dl>
           <DetailRow label="Hiring contact" value={profile?.full_name} />
-          <DetailRow label="Contact email" value={employer?.billing_email ?? "Not set"} />
+          <DetailRow label="Billing email" value={billing?.billing_email ?? "Not set"} />
           <DetailRow label="Jobs posted" value={String(jobs?.length ?? 0)} />
         </dl>
       </Card>

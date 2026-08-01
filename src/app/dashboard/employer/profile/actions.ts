@@ -72,7 +72,6 @@ export async function updateEmployerProfile(formData: FormData) {
     .from("employer_profiles")
     .update({
       company_name: companyName,
-      billing_email: billingEmail,
       home_zip: homeZip,
       description: ((formData.get("description") as string) ?? "").trim() || null,
       website,
@@ -81,6 +80,16 @@ export async function updateEmployerProfile(formData: FormData) {
 
   if (employerError) {
     fail(employerError.message);
+  }
+
+  // Billing lives in its own owner-only table so it isn't readable by every
+  // logged-in user the way employer_profiles is.
+  const { error: billingError } = await supabase
+    .from("employer_billing")
+    .upsert({ profile_id: user.id, billing_email: billingEmail }, { onConflict: "profile_id" });
+
+  if (billingError) {
+    fail(billingError.message);
   }
 
   revalidatePath(EDIT_PATH);

@@ -31,7 +31,7 @@ export default async function EmployerProfilePage({
 
   const { data: employer } = await supabase
     .from("employer_profiles")
-    .select("profile_id, company_name, billing_email, home_zip, description, website")
+    .select("profile_id, company_name, home_zip, description, website")
     .eq("profile_id", id)
     .maybeSingle();
 
@@ -110,16 +110,8 @@ export default async function EmployerProfilePage({
               ) : null
             }
           />
-          <DetailRow
-            label="Contact"
-            value={
-              employer.billing_email ? (
-                <a href={`mailto:${employer.billing_email}`} className="underline">
-                  {employer.billing_email}
-                </a>
-              ) : null
-            }
-          />
+          {/* The poster's contact details are private by default and are
+              surfaced per job via job_contacts, not here. */}
         </dl>
       </Card>
 
