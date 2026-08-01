@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
@@ -74,18 +75,23 @@ export default async function FreelancerDashboardPage() {
         </dl>
       </Card>
 
-      <div className="mt-6 flex flex-wrap items-center gap-4">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Link
+          href="/jobs"
+          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        >
+          Browse jobs
+        </Link>
         <ButtonLink href={`/freelancers/${user.id}`}>View public profile</ButtonLink>
+      </div>
+
+      <div className="mt-6">
         <form action={signOut}>
           <button type="submit" className="text-sm text-gray-500 underline">
             Sign out
           </button>
         </form>
       </div>
-
-      <p className="mt-6 text-sm text-gray-500">
-        The proximity-ranked job feed lands next.
-      </p>
     </PageShell>
   );
 }

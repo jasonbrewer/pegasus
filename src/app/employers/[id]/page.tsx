@@ -10,21 +10,7 @@ import {
   DetailRow,
   ButtonLink,
 } from "@/components/ui";
-import type { RateType } from "@/types/database";
-
-function formatRate(cents: number | null, type: RateType) {
-  if (cents == null) return null;
-  const amount = `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  if (type === "day") return `${amount}/day`;
-  if (type === "hourly") return `${amount}/hr`;
-  return `${amount} flat`;
-}
-
-function formatDates(start: string | null, end: string | null) {
-  if (!start && !end) return null;
-  if (start && end && start !== end) return `${start} → ${end}`;
-  return start ?? end;
-}
+import { formatRate, formatDateRange } from "@/lib/format";
 
 export default async function EmployerProfilePage({
   params,
@@ -151,7 +137,7 @@ export default async function EmployerProfilePage({
             const role = ROLE_BY_SLUG.get(job.role_slug);
             const place = placeByZip.get(job.location_zip);
             const rate = formatRate(job.rate_cents, job.rate_type);
-            const dates = formatDates(job.start_date, job.end_date);
+            const dates = formatDateRange(job.start_date, job.end_date);
 
             return (
               <li key={job.id}>
