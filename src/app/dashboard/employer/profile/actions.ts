@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 
 const EDIT_PATH = "/dashboard/employer/profile";
 
@@ -38,6 +39,26 @@ export async function updateEmployerProfile(formData: FormData) {
     fail("Enter a valid contact email");
   }
 
+  // Employer location is optional. If one is supplied it must resolve, so a
+  // typo'd ZIP is rejected rather than stored. Coordinates are derived by the
+  // employer_profiles_resolve_zip trigger, never sent from here.
+  const zipInput = ((formData.get("home_zip") as string) ?? "").trim();
+  let homeZip: string | null = null;
+
+  if (zipInput) {
+    const centroid = await lookupZip(supabase, zipInput);
+    if (!centroid) {
+      fail(INVALID_ZIP_MESSAGE);
+    }
+    homeZip = centroid.zip;
+  }
+
+  const website = ((formData.get("website") as string) ?? "").trim() || null;
+
+  if (website && !/^https?:\/\/.+/i.test(website)) {
+    fail("Website must start with http:// or https://");
+  }
+
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ full_name: fullName })
@@ -49,7 +70,13 @@ export async function updateEmployerProfile(formData: FormData) {
 
   const { error: employerError } = await supabase
     .from("employer_profiles")
-    .update({ company_name: companyName, billing_email: billingEmail })
+    .update({
+      company_name: companyName,
+      billing_email: billingEmail,
+      home_zip: homeZip,
+      description: ((formData.get("description") as string) ?? "").trim() || null,
+      website,
+    })
     .eq("profile_id", user.id);
 
   if (employerError) {

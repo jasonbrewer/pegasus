@@ -7,6 +7,7 @@ import {
   PageHeader,
   Badge,
   Card,
+  DetailRow,
   ButtonLink,
 } from "@/components/ui";
 import type { RateType } from "@/types/database";
@@ -44,13 +45,22 @@ export default async function EmployerProfilePage({
 
   const { data: employer } = await supabase
     .from("employer_profiles")
-    .select("profile_id, company_name, billing_email")
+    .select("profile_id, company_name, billing_email, home_zip, description, website")
     .eq("profile_id", id)
     .maybeSingle();
 
   if (!employer) {
     notFound();
   }
+
+  // Only the resolved city/state is rendered; the raw ZIP stays server-side.
+  const { data: employerPlace } = employer.home_zip
+    ? await supabase
+        .from("zip_codes")
+        .select("city, state")
+        .eq("zip", employer.home_zip)
+        .maybeSingle()
+    : { data: null };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -82,17 +92,52 @@ export default async function EmployerProfilePage({
     <PageShell>
       <PageHeader
         title={employer.company_name}
-        subtitle={profile?.full_name ? `Hiring contact: ${profile.full_name}` : undefined}
+        subtitle={
+          employerPlace
+            ? [employerPlace.city, employerPlace.state].filter(Boolean).join(", ")
+            : undefined
+        }
         action={isOwner ? <ButtonLink href="/dashboard/employer/profile">Edit profile</ButtonLink> : undefined}
       />
 
-      {employer.billing_email && (
-        <p className="mb-6 text-sm text-gray-600">
-          <a href={`mailto:${employer.billing_email}`} className="underline">
-            {employer.billing_email}
-          </a>
+      {employer.description && (
+        <p className="mb-6 whitespace-pre-line text-sm leading-relaxed text-gray-700">
+          {employer.description}
         </p>
       )}
+
+      <Card>
+        <dl>
+          <DetailRow label="Hiring contact" value={profile?.full_name} />
+          <DetailRow
+            label="Website"
+            value={
+              employer.website ? (
+                <a
+                  href={employer.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  {employer.website.replace(/^https?:\/\//, "")}
+                </a>
+              ) : null
+            }
+          />
+          <DetailRow
+            label="Contact"
+            value={
+              employer.billing_email ? (
+                <a href={`mailto:${employer.billing_email}`} className="underline">
+                  {employer.billing_email}
+                </a>
+              ) : null
+            }
+          />
+        </dl>
+      </Card>
+
+      <div className="h-8" />
 
       <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
         Posted jobs

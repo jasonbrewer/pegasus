@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import {
@@ -28,7 +27,12 @@ export default async function FreelancerProfilePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // freelancer_profiles is publicly readable, so this works signed out too.
+  // Members-only, same as every profile and job page. The proxy redirects
+  // signed-out visitors before they get here; this is defense in depth.
+  if (!user) {
+    redirect(`/sign-in?next=${encodeURIComponent(`/freelancers/${id}`)}`);
+  }
+
   const { data: freelancer } = await supabase
     .from("freelancer_profiles")
     .select("profile_id, bio, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url")
@@ -39,8 +43,6 @@ export default async function FreelancerProfilePage({
     notFound();
   }
 
-  // profiles is readable by authenticated users only, so a signed-out viewer
-  // gets no name. Render what we can rather than 404ing.
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name")
@@ -73,15 +75,6 @@ export default async function FreelancerProfilePage({
         subtitle={location}
         action={isOwner ? <ButtonLink href="/dashboard/freelancer/profile">Edit profile</ButtonLink> : undefined}
       />
-
-      {!profile && (
-        <p className="mb-5 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
-          <Link href="/sign-in" className="underline">
-            Sign in
-          </Link>{" "}
-          to see this freelancer&apos;s full details.
-        </p>
-      )}
 
       <div className="flex flex-col gap-6">
         {roles.length > 0 && (

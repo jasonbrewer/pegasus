@@ -79,6 +79,11 @@ export interface Database {
           company_name: string;
           billing_email: string | null;
           stripe_customer_id: string | null;
+          home_zip: string | null;
+          home_lat: number | null;
+          home_lng: number | null;
+          description: string | null;
+          website: string | null;
           created_at: string;
           updated_at: string;
         };

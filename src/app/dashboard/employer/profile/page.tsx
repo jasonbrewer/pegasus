@@ -40,7 +40,7 @@ export default async function EditEmployerProfilePage({
 
   const { data: employer } = await supabase
     .from("employer_profiles")
-    .select("company_name, billing_email")
+    .select("company_name, billing_email, home_zip, description, website")
     .eq("profile_id", user.id)
     .single();
 
@@ -70,6 +70,35 @@ export default async function EditEmployerProfilePage({
             name="full_name"
             required
             defaultValue={profile?.full_name ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="About the company" hint="A couple of sentences on what you produce.">
+          <textarea
+            name="description"
+            rows={4}
+            defaultValue={employer?.description ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="ZIP" hint="Where you're based. Only your city and state are shown.">
+          <input
+            name="home_zip"
+            inputMode="numeric"
+            placeholder="23220"
+            defaultValue={employer?.home_zip ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="Website">
+          <input
+            name="website"
+            type="url"
+            placeholder="https://company.com"
+            defaultValue={employer?.website ?? ""}
             className={inputClass}
           />
         </Field>
