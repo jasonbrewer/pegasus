@@ -38,11 +38,18 @@ export default async function EditEmployerProfilePage({
     redirect("/dashboard/freelancer/profile");
   }
 
-  const { data: employer } = await supabase
-    .from("employer_profiles")
-    .select("company_name, billing_email, home_zip, description, website")
-    .eq("profile_id", user.id)
-    .single();
+  const [{ data: employer }, { data: billing }] = await Promise.all([
+    supabase
+      .from("employer_profiles")
+      .select("company_name, home_zip, description, website")
+      .eq("profile_id", user.id)
+      .single(),
+    supabase
+      .from("employer_billing")
+      .select("billing_email")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+  ]);
 
   return (
     <PageShell>
@@ -103,12 +110,15 @@ export default async function EditEmployerProfilePage({
           />
         </Field>
 
-        <Field label="Contact email" hint="Used for billing when employer payments switch on.">
+        <Field
+          label="Billing email"
+          hint="Private to you. Used for billing when employer payments switch on — it is never shown to freelancers."
+        >
           <input
             name="billing_email"
             type="email"
             placeholder="you@company.com"
-            defaultValue={employer?.billing_email ?? ""}
+            defaultValue={billing?.billing_email ?? ""}
             className={inputClass}
           />
         </Field>

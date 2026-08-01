@@ -39,6 +39,7 @@ export const ROLES: Role[] = [
   { slug: "social-vertical-video-editor", label: "Social / Vertical Video Editor", category: "remote", group: "Post-Production" },
   { slug: "colorist", label: "Colorist", category: "remote", group: "Post-Production" },
   { slug: "motion-graphics-vfx", label: "Motion Graphics / VFX Designer", category: "remote", group: "Post-Production" },
+  { slug: "3d-motion-blender-artist", label: "3D Motion / Blender Artist", category: "remote", group: "Post-Production" },
 
   // Talent & Creative
   { slug: "on-camera-host", label: "On-Camera Host / Talent", category: "on-location", group: "Talent & Creative" },

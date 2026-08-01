@@ -77,8 +77,6 @@ export interface Database {
         Row: {
           profile_id: string;
           company_name: string;
-          billing_email: string | null;
-          stripe_customer_id: string | null;
           home_zip: string | null;
           home_lat: number | null;
           home_lng: number | null;
@@ -125,6 +123,51 @@ export interface Database {
           location_lng: number;
         };
         Update: Partial<Database["public"]["Tables"]["jobs"]["Row"]>;
+        Relationships: [];
+      };
+      employer_billing: {
+        Row: {
+          profile_id: string;
+          billing_email: string | null;
+          stripe_customer_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["employer_billing"]["Row"]> & {
+          profile_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["employer_billing"]["Row"]>;
+        Relationships: [];
+      };
+      freelancer_contacts: {
+        Row: {
+          profile_id: string;
+          phone: string | null;
+          contact_email: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["freelancer_contacts"]["Row"]> & {
+          profile_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["freelancer_contacts"]["Row"]>;
+        Relationships: [];
+      };
+      job_contacts: {
+        Row: {
+          job_id: string;
+          contact_name: string;
+          contact_email: string | null;
+          contact_phone: string | null;
+          share_with_applicants: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["job_contacts"]["Row"]> & {
+          job_id: string;
+          contact_name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["job_contacts"]["Row"]>;
         Relationships: [];
       };
       zip_codes: {
