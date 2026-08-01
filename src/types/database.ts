@@ -122,6 +122,18 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["jobs"]["Row"]>;
         Relationships: [];
       };
+      zip_codes: {
+        Row: {
+          zip: string;
+          lat: number;
+          lng: number;
+          city: string | null;
+          state: string | null;
+        };
+        Insert: Database["public"]["Tables"]["zip_codes"]["Row"];
+        Update: Partial<Database["public"]["Tables"]["zip_codes"]["Row"]>;
+        Relationships: [];
+      };
       applications: {
         Row: {
           id: string;

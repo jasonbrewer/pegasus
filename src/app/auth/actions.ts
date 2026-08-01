@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import type { AccountRole } from "@/types/database";
 
 export async function signUp(formData: FormData) {
@@ -12,19 +13,34 @@ export async function signUp(formData: FormData) {
 
   const supabase = await createClient();
 
+  let metadata: Record<string, string>;
+
+  if (role === "freelancer") {
+    // Validate the ZIP before creating the account, so an unknown ZIP gives a
+    // clean form error rather than a failed signup trigger.
+    const centroid = await lookupZip(supabase, formData.get("home_zip") as string);
+
+    if (!centroid) {
+      redirect(`/sign-up?role=freelancer&error=${encodeURIComponent(INVALID_ZIP_MESSAGE)}`);
+    }
+
+    metadata = { role, full_name: fullName, home_zip: centroid.zip };
+  } else {
+    metadata = {
+      role,
+      full_name: fullName,
+      company_name: formData.get("company_name") as string,
+    };
+  }
+
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data:
-        role === "freelancer"
-          ? { role, full_name: fullName, home_zip: formData.get("home_zip") as string }
-          : { role, full_name: fullName, company_name: formData.get("company_name") as string },
-    },
+    options: { data: metadata },
   });
 
   if (error) {
-    redirect(`/sign-up?error=${encodeURIComponent(error.message)}`);
+    redirect(`/sign-up?role=${role}&error=${encodeURIComponent(error.message)}`);
   }
 
   redirect("/dashboard");

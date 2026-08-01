@@ -49,6 +49,19 @@ npx supabase db push
 Or paste the contents of the files in `supabase/migrations/` (in order) into the SQL Editor in the
 Supabase dashboard and run them.
 
+### Seed the ZIP-code table (required)
+
+Signup and job posting both resolve a ZIP to a lat/lng against the `zip_codes` table, and reject
+any ZIP that isn't in it. **Until this is seeded, nobody can sign up as a freelancer or post a
+job.** After setting the env vars in step 2:
+
+```bash
+npm run seed:zips
+```
+
+This loads all 42,249 rows from `data/us-zip-centroids.csv`. It's idempotent (upserts on `zip`),
+so re-running is safe. See [ZIP geocoding](#zip-geocoding) for provenance and precision.
+
 ### Configure Auth
 
 - **Authentication → Providers → Email** should be enabled (it is by default).
@@ -110,6 +123,8 @@ functions. Summary:
   on later without a schema change.
 - **`applications`** — a freelancer applying to a job (unique per job/freelancer pair, unlimited
   and free).
+- **`zip_codes`** — 42,249 US ZIP centroids. Every ZIP a user submits is resolved against this
+  table; see [ZIP geocoding](#zip-geocoding).
 
 ### Geo matching
 
@@ -125,6 +140,60 @@ proximity queries. Matching is soft, not a hard wall:
 `public.job_feed(...)` returns the proximity-ranked job feed for a freelancer;
 `public.job_applicants(job_id)` returns the proximity-ranked applicant list for an employer's job.
 
+## ZIP geocoding
+
+Users enter a ZIP; the system stores the ZIP's centroid as lat/lng. There is no external
+geocoding API — the dataset is committed to this repo, so the seed is reproducible offline and
+there's no key to manage, no rate limit, and no runtime dependency.
+
+**Precision is ZIP-centroid level by design.** We rank "who is near me," not street addresses.
+A freelancer is placed at the center of their ZIP, which is accurate to roughly a mile in dense
+areas and a few miles in rural ones — well inside the tolerance of a 25-mile travel radius.
+
+### Where the data came from
+
+`data/us-zip-centroids.csv` was generated from the [`zipcodes`](https://www.npmjs.com/package/zipcodes)
+npm package (v8.0.0, BSD license), whose US data derives from the public-domain
+[federalgovernmentzipcodes.us](http://federalgovernmentzipcodes.us/) dataset.
+
+Columns are `zip,lat,lng,city,state`. Of the package's 42,555 US entries, 306 were dropped
+because they carried `0,0` coordinates — those ZIPs are rejected at signup rather than silently
+placed off the coast of Africa. That leaves **42,249 rows**.
+
+Accuracy was spot-checked against 18 known city-center ZIPs: median error 0.5 km, max 2.2 km,
+none over 10 km. (A different candidate dataset — `midwire/free_zipcode_data` — was rejected for
+having 4 of those same 18 off by more than 10 km, up to 45 km.)
+
+The file includes military/diplomatic ZIPs (states `AA`/`AE`/`AP`) and territories such as
+American Samoa, positioned at their real overseas coordinates. Those are genuine US ZIPs, so
+they're kept — they simply rank as very distant.
+
+### Re-running the seed
+
+```bash
+npm run seed:zips
+```
+
+Reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`. The service
+role is required because `zip_codes` is read-only under RLS. The script upserts on the `zip`
+primary key, so it's safe to re-run.
+
+To refresh the dataset itself, regenerate the CSV from a newer source and re-run the seed — the
+schema doesn't change.
+
+### How validation is enforced
+
+Two layers, deliberately:
+
+1. **App layer** (`src/lib/geocode.ts`) — signup and job posting look the ZIP up first so the user
+   gets a clean "Enter a valid US ZIP code" form error.
+2. **Database layer** — `handle_new_user`, `resolve_freelancer_home_zip`, and
+   `resolve_job_location_zip` re-derive lat/lng from `zip_codes` on every write and raise on an
+   unknown ZIP. Coordinates are never taken from client input, so they can't be spoofed, and
+   changing a ZIP later automatically moves the coordinates with it.
+
+ZIP+4 input (`23220-1234`) is normalized to the 5-digit code at both layers.
+
 ## What's built vs. deferred
 
 **Built in this scaffold:**
@@ -133,12 +202,15 @@ proximity queries. Matching is soft, not a hard wall:
 - Supabase client helpers (browser, server, proxy/session-refresh)
 - Stubbed auth: sign up (with role picker), sign in, sign out, auth callback route, role-aware
   dashboard redirect
+- ZIP → lat/lng geocoding from a committed centroid table, enforced at both app and DB layers
+- Job posting form + server action (role picker grouped by taxonomy, validated ZIP)
 
-**Explicitly not built yet** (next, after schema review):
+**Explicitly not built yet:**
 - Freelancer profile editing UI
-- Job posting UI
-- Job feed UI (proximity-ranked, filterable by role)
-- Applicant list UI
+- Job feed UI (proximity-ranked, filterable by role) — `job_feed()` exists and is tested, but
+  nothing renders it yet
+- Applicant list UI — same, `job_applicants()` exists
+- Apply-to-job flow
 
 **Deferred to v2** (per product brief — do not build yet):
 - Employer reviews

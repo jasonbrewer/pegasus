@@ -52,7 +52,16 @@ export default async function SignUpPage({
         {role === "freelancer" ? (
           <label className="flex flex-col gap-1 text-sm">
             Home ZIP
-            <input name="home_zip" required className="rounded-md border border-gray-300 px-3 py-2" />
+            <input
+              name="home_zip"
+              required
+              inputMode="numeric"
+              placeholder="23220"
+              className="rounded-md border border-gray-300 px-3 py-2"
+            />
+            <span className="text-xs text-gray-500">
+              Sets your location for proximity matching. You can widen your travel radius later.
+            </span>
           </label>
         ) : (
           <label className="flex flex-col gap-1 text-sm">
