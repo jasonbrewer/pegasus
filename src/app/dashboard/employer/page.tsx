@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
@@ -24,8 +25,17 @@ export default async function EmployerDashboardPage() {
       <p className="text-sm text-gray-500">
         Signed in as {user.email}. Company: {profile?.company_name || "not set"}.
       </p>
+      <div>
+        <Link
+          href="/dashboard/employer/jobs/new"
+          className="inline-block rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+        >
+          Post a job
+        </Link>
+      </div>
+
       <p className="text-sm text-gray-500">
-        Job posting and the proximity-ranked applicants view land after the v1 schema is reviewed.
+        The proximity-ranked applicants view lands next.
       </p>
       <form action={signOut}>
         <button type="submit" className="text-sm underline">

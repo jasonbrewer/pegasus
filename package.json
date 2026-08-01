@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:zips": "node --env-file-if-exists=.env.local scripts/seed-zip-codes.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
