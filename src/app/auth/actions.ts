@@ -46,18 +46,31 @@ export async function signUp(formData: FormData) {
   redirect("/dashboard");
 }
 
+/**
+ * Only allow same-origin relative paths as a post-login destination, so a
+ * crafted ?next= can't turn sign-in into an open redirect.
+ */
+function safeNext(value: FormDataEntryValue | null): string {
+  const next = (value as string | null) ?? "";
+  if (next.startsWith("/") && !next.startsWith("//")) return next;
+  return "/dashboard";
+}
+
 export async function signIn(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const next = safeNext(formData.get("next"));
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/sign-in?error=${encodeURIComponent(error.message)}`);
+    const params = new URLSearchParams({ error: error.message });
+    if (next !== "/dashboard") params.set("next", next);
+    redirect(`/sign-in?${params.toString()}`);
   }
 
-  redirect("/dashboard");
+  redirect(next);
 }
 
 export async function signOut() {

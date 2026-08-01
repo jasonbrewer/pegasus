@@ -116,8 +116,8 @@ functions. Summary:
   tagged `on-location`, `regional`, or `remote`. This category drives the geo-matching behavior.
 - **`freelancer_profiles`** / **`freelancer_roles`** — bio, day rate, home ZIP → lat/lng, travel
   radius, reel/portfolio links; a freelancer can hold multiple roles from the taxonomy.
-- **`employer_profiles`** — company name + billing fields (`stripe_customer_id`) that sit unused
-  until Stripe is wired up.
+- **`employer_profiles`** — company name, description, website, optional ZIP → lat/lng, plus
+  billing fields (`stripe_customer_id`) that sit unused until Stripe is wired up.
 - **`jobs`** — role, location (ZIP → lat/lng), dates, rate, description, `travel_expected` flag,
   plus `payment_status`/`stripe_checkout_session_id` stub columns so employer billing can switch
   on later without a schema change.
@@ -139,6 +139,30 @@ proximity queries. Matching is soft, not a hard wall:
 
 `public.job_feed(...)` returns the proximity-ranked job feed for a freelancer;
 `public.job_applicants(job_id)` returns the proximity-ranked applicant list for an employer's job.
+
+## Visibility: members-only
+
+Pegasus is login-gated. A signed-out visitor sees the landing page and the sign-in / sign-up
+pages, and nothing else — no profiles, no job listings.
+
+This is enforced in two independent places, so neither one is a single point of failure:
+
+- **RLS** — `profiles`, `freelancer_profiles`, `freelancer_roles`, `employer_profiles`, `jobs`,
+  and `applications` grant `select` only `to authenticated`. An anonymous client gets zero rows
+  from every one of them, even hitting PostgREST directly with the anon key.
+- **Route protection** — `src/lib/supabase/middleware.ts` redirects signed-out requests for any
+  non-public path to `/sign-in?next=…`, so users land back where they were headed instead of
+  seeing an empty page. The `next` parameter only accepts same-origin relative paths, so it
+  can't be used as an open redirect.
+
+Two tables stay readable without a session, deliberately:
+
+- **`zip_codes`** — signup has to validate a ZIP *before* the user has a session. Locking this
+  down would break sign-up.
+- **`roles`** — the static job-role taxonomy. Reference data, not user data.
+
+Owner-only write policies and applicant privacy (an application is visible only to the applicant
+and to the job's employer) are unchanged.
 
 ## ZIP geocoding
 
@@ -204,6 +228,8 @@ ZIP+4 input (`23220-1234`) is normalized to the 5-digit code at both layers.
   dashboard redirect
 - ZIP → lat/lng geocoding from a committed centroid table, enforced at both app and DB layers
 - Job posting form + server action (role picker grouped by taxonomy, validated ZIP)
+- Freelancer and employer profile pages (owner-gated edit + members-only view)
+- Login gating: RLS scoped to authenticated, plus route-level redirects
 
 **Explicitly not built yet:**
 - Freelancer profile editing UI
