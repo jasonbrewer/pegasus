@@ -50,6 +50,8 @@ export const ROLES: Role[] = [
   { slug: "shooter-editor", label: "Shooter-Editor / One-Person Band", category: "regional", group: "Full-Service" },
 ];
 
+export const ROLE_BY_SLUG = new Map(ROLES.map((role) => [role.slug, role]));
+
 /** Display order for role groups, for UI bucketing. */
 export const ROLE_GROUPS = [
   "Camera",
