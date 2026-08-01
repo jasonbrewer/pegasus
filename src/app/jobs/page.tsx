@@ -8,11 +8,13 @@ import {
   PageShell,
   PageHeader,
   ErrorBanner,
+  SuccessBanner,
   Badge,
   Card,
   ButtonLink,
   inputClass,
 } from "@/components/ui";
+import { applyToJob } from "./actions";
 
 const RADIUS_PRESETS = [25, 50, 100];
 const VALID_ROLE_SLUGS = new Set(ROLES.map((r) => r.slug));
@@ -20,7 +22,13 @@ const VALID_ROLE_SLUGS = new Set(ROLES.map((r) => r.slug));
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ zip?: string; role?: string; radius?: string }>;
+  searchParams: Promise<{
+    zip?: string;
+    role?: string;
+    radius?: string;
+    applied?: string;
+    error?: string;
+  }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -34,11 +42,16 @@ export default async function JobsPage({
     redirect(`/sign-in?next=${encodeURIComponent("/jobs")}`);
   }
 
-  const { data: freelancer } = await supabase
-    .from("freelancer_profiles")
-    .select("home_zip, travel_radius_miles")
-    .eq("profile_id", user.id)
-    .maybeSingle();
+  const [{ data: freelancer }, { data: viewer }] = await Promise.all([
+    supabase
+      .from("freelancer_profiles")
+      .select("home_zip, travel_radius_miles")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+    supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+  ]);
+
+  const isFreelancer = viewer?.role === "freelancer";
 
   // Their own ZIP is the default origin, but any US ZIP can be browsed from.
   const zipInput = params.zip?.trim() || freelancer?.home_zip || "";
@@ -82,6 +95,18 @@ export default async function JobsPage({
     : { data: [] };
   const companyById = new Map((employers ?? []).map((e) => [e.profile_id, e.company_name]));
 
+  // Which of these jobs the viewer has already applied to. RLS scopes
+  // applications to the caller's own rows, so this can't leak other people's.
+  const jobIds = (jobs ?? []).map((j) => j.id);
+  const { data: myApplications } = jobIds.length
+    ? await supabase
+        .from("applications")
+        .select("job_id")
+        .eq("freelancer_id", user.id)
+        .in("job_id", jobIds)
+    : { data: [] };
+  const appliedJobIds = new Set((myApplications ?? []).map((a) => a.job_id));
+
   const zips = [...new Set((jobs ?? []).map((j) => j.location_zip))];
   const { data: places } = zips.length
     ? await supabase.from("zip_codes").select("zip, city, state").in("zip", zips)
@@ -94,6 +119,13 @@ export default async function JobsPage({
     ? [centroid.city, centroid.state].filter(Boolean).join(", ")
     : null;
 
+  // Apply posts back to the current search so filters survive the round trip.
+  const returnQuery = new URLSearchParams();
+  if (params.zip) returnQuery.set("zip", params.zip);
+  if (params.role) returnQuery.set("role", params.role);
+  if (params.radius) returnQuery.set("radius", params.radius);
+  const returnTo = returnQuery.toString() ? `/jobs?${returnQuery}` : "/jobs";
+
   return (
     <PageShell>
       <PageHeader
@@ -102,7 +134,8 @@ export default async function JobsPage({
         action={<ButtonLink href="/dashboard/freelancer">Dashboard</ButtonLink>}
       />
 
-      <ErrorBanner message={zipError ?? feedError?.message} />
+      <ErrorBanner message={zipError ?? params.error ?? feedError?.message} />
+      {params.applied && <SuccessBanner message="Application sent." />}
 
       <form method="GET" className="mb-8 grid gap-3 sm:grid-cols-[1fr_1.4fr_1fr_auto]">
         <label className="flex flex-col gap-1.5">
@@ -184,7 +217,9 @@ export default async function JobsPage({
                 <li key={job.id}>
                   <Card>
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <p className="font-medium">{job.title}</p>
+                      <Link href={`/jobs/${job.id}`} className="font-medium hover:underline">
+                        {job.title}
+                      </Link>
                       <span className="text-sm text-gray-500">
                         {isRemote ? "Remote" : distance}
                       </span>
@@ -215,6 +250,28 @@ export default async function JobsPage({
                     <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-700">
                       {job.description}
                     </p>
+
+                    <div className="mt-3 flex items-center gap-3">
+                      {appliedJobIds.has(job.id) ? (
+                        <span className="text-sm font-medium text-green-700">Applied</span>
+                      ) : isFreelancer ? (
+                        <form action={applyToJob}>
+                          <input type="hidden" name="job_id" value={job.id} />
+                          <input type="hidden" name="return_to" value={returnTo} />
+                          <button
+                            type="submit"
+                            className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                          >
+                            Apply
+                          </button>
+                        </form>
+                      ) : null}
+                      <Link href={`/jobs/${job.id}`} className="text-sm text-gray-500 underline">
+                        {appliedJobIds.has(job.id) || !isFreelancer
+                          ? "View details"
+                          : "Details & add a note"}
+                      </Link>
+                    </div>
                   </Card>
                 </li>
               );
