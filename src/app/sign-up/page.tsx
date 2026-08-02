@@ -16,15 +16,20 @@ export default async function SignUpPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <div>
-        <h1 className="text-2xl font-semibold">Create your account</h1>
+        <h1 className="text-2xl font-semibold">
+          {role === "freelancer" ? "Apply to join Pegasus" : "Create your account"}
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Freelance profiles are always free. Employers post jobs (billing stubbed for v1).
+          {role === "freelancer"
+            ? "Membership is free. Applications are reviewed by a person before your profile goes live."
+            : "Sign up and post the same day. Freelance profiles are always free; employers pay to post (billing stubbed for v1)."}
         </p>
       </div>
 
       {invitedBy && (
         <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
-          You were invited to Pegasus. Finish signing up to get in.
+          You were invited to Pegasus. Your application still gets read — the invite just
+          puts it near the front.
         </p>
       )}
 
@@ -35,7 +40,7 @@ export default async function SignUpPage({
             role === "freelancer" ? "border-black font-medium" : "border-gray-300 text-gray-500"
           }`}
         >
-          I&apos;m a freelancer
+          I&apos;m crew — apply
         </Link>
         <Link
           href={`/sign-up?role=employer${invitedBy ? `&ref=${invitedBy}` : ""}`}
@@ -98,8 +103,18 @@ export default async function SignUpPage({
         </label>
 
         <button type="submit" className="mt-2 rounded-md bg-black px-3 py-2 text-sm font-medium text-white">
-          Create account
+          {role === "freelancer" ? "Submit application" : "Create account"}
         </button>
+
+        {role === "freelancer" && (
+          // Said before signing up, so the pending state that follows is what
+          // they were told to expect rather than a surprise.
+          <p className="text-xs text-gray-500">
+            You&apos;ll be able to sign in and build your profile right away. Employers
+            can&apos;t see you, and you can&apos;t apply to jobs, until an admin approves
+            your application.
+          </p>
+        )}
       </form>
 
       <p className="text-center text-sm text-gray-500">

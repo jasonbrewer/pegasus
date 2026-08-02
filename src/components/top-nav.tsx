@@ -17,13 +17,17 @@ export async function TopNav() {
   } = await supabase.auth.getUser();
 
   let role: string | null = null;
+  let isAdmin = false;
+  let status: string | null = null;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, status, is_admin")
       .eq("id", user.id)
       .maybeSingle();
     role = profile?.role ?? null;
+    status = profile?.status ?? null;
+    isAdmin = profile?.is_admin ?? false;
   }
 
   const links =
@@ -41,6 +45,13 @@ export async function TopNav() {
           ]
         : [];
 
+  // A blocked employer has nothing to post, so the link goes rather than
+  // leading to a form the database will refuse.
+  const visibleLinks =
+    role === "employer" && status !== "approved"
+      ? links.filter((link) => link.href !== "/dashboard/employer/jobs/new")
+      : links;
+
   return (
     <header className="border-b border-gray-200">
       <nav className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
@@ -48,13 +59,16 @@ export async function TopNav() {
           Pegasus
         </Link>
 
-        {links.length > 0 && (
+        {visibleLinks.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            {links.map((link) => (
+            {visibleLinks.map((link) => (
               <NavLink key={link.href} href={link.href}>
                 {link.label}
               </NavLink>
             ))}
+            {/* 9.3 — only ever rendered for an admin. The route 404s for
+                everyone else regardless. */}
+            {isAdmin && <NavLink href="/admin">Moderation</NavLink>}
           </div>
         )}
 

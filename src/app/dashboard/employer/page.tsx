@@ -5,6 +5,7 @@ import { ROLE_BY_SLUG } from "@/lib/roles";
 import { DeleteJobButton } from "@/components/delete-job-button";
 import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
 import { InviteSection } from "@/components/invite-section";
+import { ParticipationNotice } from "@/components/participation-notice";
 
 export default async function EmployerDashboardPage() {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export default async function EmployerDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, role, status")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -66,6 +67,9 @@ export default async function EmployerDashboardPage() {
         subtitle={user.email}
         action={<ButtonLink href="/dashboard/employer/profile">Edit profile</ButtonLink>}
       />
+
+      {/* 9.4 — a blocked employer sees why their postings vanished. */}
+      <ParticipationNotice viewer={profile} />
 
       {/* 7.1 — referral is the main growth channel for a login-walled
           product, so this sits above the fold, not in a footer. */}
@@ -135,12 +139,14 @@ export default async function EmployerDashboardPage() {
       )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Link
-          href="/dashboard/employer/jobs/new"
-          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Post a job
-        </Link>
+        {profile?.status === "approved" && (
+          <Link
+            href="/dashboard/employer/jobs/new"
+            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            Post a job
+          </Link>
+        )}
         <ButtonLink href={`/employers/${user.id}`}>View public profile</ButtonLink>
       </div>
     </PageShell>

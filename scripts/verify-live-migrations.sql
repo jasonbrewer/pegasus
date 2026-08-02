@@ -1,5 +1,5 @@
 -- Read-only audit: does the live database actually contain everything
--- migrations 20260801000004 .. 20260801000009 claim to create?
+-- migrations 20260801000004 .. 20260801000010 claim to create?
 --
 -- Run it in the Supabase SQL editor. It writes nothing and returns one row per
 -- expected object, MISSING rows first.
@@ -44,7 +44,10 @@ begin
     ('000005','freelancer_profiles','credits_html'),
     ('000006','applications','credits_html'),
     ('000008','jobs','company_network'),
-    ('000009','applications','first_viewed_at')
+    ('000009','applications','first_viewed_at'),
+    ('000010','profiles','status'),
+    ('000010','profiles','is_admin'),
+    ('000010','profiles','invited_by')
   ) as m(migration, tbl, col);
 
   -- ---- columns that must be GONE ------------------------------------------
@@ -111,15 +114,46 @@ begin
     ('000004','employer_billing','employer billing is owner-only'),
     ('000004','employer_billing','employers insert their own billing row'),
     ('000004','employer_billing','employers update their own billing row'),
-    ('000005','freelancer_videos','freelancer videos are readable by authenticated users'),
+    -- 000005's read policy on freelancer_videos was replaced by 000010's
+    -- participation-gated one, which is asserted in the 000010 block below.
     ('000005','freelancer_videos','freelancers manage their own videos'),
-    ('000008','job_titles','job titles are readable unless the poster hid them'),
+    -- 000008's read policy on job_titles was likewise replaced by 000010.
     ('000008','job_titles','employers insert titles for their own jobs'),
     ('000008','job_titles','employers update titles for their own jobs'),
     ('000008','job_titles','employers delete titles for their own jobs'),
     ('000009','saved_jobs','freelancers view their own saved jobs'),
     ('000009','saved_jobs','freelancers save jobs for themselves'),
-    ('000009','saved_jobs','freelancers unsave their own saved jobs')
+    ('000009','saved_jobs','freelancers unsave their own saved jobs'),
+    ('000010','profiles','profiles are readable when participating, plus self and admins'),
+    ('000010','freelancer_profiles','freelancer profiles are readable when participating'),
+    ('000010','freelancer_roles','freelancer roles are readable when participating'),
+    ('000010','freelancer_videos','freelancer videos are readable when participating'),
+    ('000010','employer_profiles','employer profiles are readable when participating'),
+    ('000010','jobs','jobs are readable when the employer is participating'),
+    ('000010','jobs','participating employers create jobs for themselves'),
+    ('000010','job_titles','job titles are readable when the job is, unless hidden'),
+    ('000010','applications','participating freelancers apply to jobs')
+  ) as m(migration, tbl, pol);
+
+  -- ---- policies that must be GONE -----------------------------------------
+  -- A leftover `using (true)` policy is permissive-OR'd with its replacement
+  -- and would silently un-gate the marketplace.
+  insert into migration_audit
+  select m.migration, 'policy replaced', m.tbl || ' :: ' || m.pol,
+         case when exists (
+           select 1 from pg_policies p
+           where p.schemaname = 'public' and p.tablename = m.tbl and p.policyname = m.pol
+         ) then 'MISSING (old permissive policy still present)' else 'ok' end
+  from (values
+    ('000010','profiles','profiles are readable by authenticated users'),
+    ('000010','freelancer_profiles','freelancer profiles are readable by authenticated users'),
+    ('000010','freelancer_roles','freelancer roles are readable by authenticated users'),
+    ('000010','freelancer_videos','freelancer videos are readable by authenticated users'),
+    ('000010','employer_profiles','employer profiles are readable by authenticated users'),
+    ('000010','jobs','jobs are readable by authenticated users'),
+    ('000010','jobs','employers create jobs for themselves'),
+    ('000010','job_titles','job titles are readable unless the poster hid them'),
+    ('000010','applications','freelancers apply to jobs')
   ) as m(migration, tbl, pol);
 
   -- ---- table privileges (RLS narrows; it never grants) ---------------------
@@ -175,7 +209,10 @@ begin
     ('000004','public.resolve_employer_home_zip()'),
     ('000007','public.job_applicants(uuid)'),
     ('000008','public.job_feed(double precision, double precision, double precision, text)'),
-    ('000009','public.mark_applicants_viewed(uuid)')
+    ('000009','public.mark_applicants_viewed(uuid)'),
+    ('000010','public.current_user_is_admin()'),
+    ('000010','public.is_participating(uuid)'),
+    ('000010','public.admin_set_account_status(uuid, public.account_status)')
   ) as m(migration, sig);
 
   -- job_applicants must RETURN credits_html (000007's whole point), and
@@ -201,8 +238,42 @@ begin
   from (values
     ('000007','public.job_applicants(uuid)'),
     ('000008','public.job_feed(double precision, double precision, double precision, text)'),
-    ('000009','public.mark_applicants_viewed(uuid)')
+    ('000009','public.mark_applicants_viewed(uuid)'),
+    ('000010','public.current_user_is_admin()'),
+    ('000010','public.is_participating(uuid)'),
+    ('000010','public.admin_set_account_status(uuid, public.account_status)')
   ) as m(migration, sig);
+
+  -- ---- 000010: nobody can promote themselves ------------------------------
+  -- profiles.status and profiles.is_admin must NOT be writable from the
+  -- client. A table-level UPDATE grant here is a privilege escalation via a
+  -- single PostgREST call, whatever the app code does.
+  insert into migration_audit
+  select '000010', 'grant absent', 'authenticated -> profiles.' || m.col || ' UPDATE',
+         case when has_column_privilege('authenticated', 'public.profiles', m.col, 'UPDATE')
+              then 'MISSING (column is writable)' else 'ok' end
+  from (values ('status'), ('is_admin'), ('role')) as m(col);
+
+  insert into migration_audit
+  select '000010', 'grant absent', 'authenticated -> profiles UPDATE (table-level)',
+         case when has_table_privilege('authenticated', 'public.profiles', 'UPDATE')
+              then 'MISSING (table-level UPDATE still granted)' else 'ok' end;
+
+  insert into migration_audit
+  select '000010', 'grant UPDATE', 'authenticated -> profiles.' || m.col,
+         case when has_column_privilege('authenticated', 'public.profiles', m.col, 'UPDATE')
+              then 'ok' else 'MISSING (profile editor is broken)' end
+  from (values ('full_name'), ('avatar_path')) as m(col);
+
+  -- Admin carve-outs are reads. A write policy naming the admin helper would
+  -- be god-mode creeping back in.
+  insert into migration_audit
+  select '000010', 'no admin write policy', 'profiles',
+         case when exists (
+           select 1 from pg_policies
+           where schemaname = 'public' and tablename = 'profiles' and cmd <> 'SELECT'
+             and coalesce(qual,'') || coalesce(with_check,'') like '%current_user_is_admin%'
+         ) then 'MISSING (an admin WRITE policy exists)' else 'ok' end;
 
   -- ---- triggers ------------------------------------------------------------
   insert into migration_audit

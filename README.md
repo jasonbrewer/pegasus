@@ -164,6 +164,52 @@ Two tables stay readable without a session, deliberately:
 Owner-only write policies and applicant privacy (an application is visible only to the applicant
 and to the job's employer) are unchanged.
 
+## Access control: a curated community
+
+Being logged in is not the same as being let in. Every account carries a
+`profiles.status` of `pending`, `approved` or `blocked`, and the marketplace is gated on it.
+
+- **Freelancers sign up `pending`.** They can sign in and build a profile, but they are absent
+  from the marketplace — not in profile browsing, not in role searches, not in an employer's
+  applicant list — and they cannot apply to jobs. An admin approving them flips all of that on.
+- **Employers sign up `approved`.** They post the same day. An admin can `block` one, which
+  hides every posting they have and refuses new ones.
+- **`blocked` means out**, for either role: hidden from others, actions refused.
+
+An invite link (see `src/lib/invite.ts`) does *not* auto-approve. The inviter's id is carried
+through signup into `profiles.invited_by`, so the application surfaces in the queue as
+"invited by X" — a fast track through the queue, not around it.
+
+All of this lives in RLS and in column privileges, not in TypeScript. The relevant policies are
+in `supabase/migrations/20260801000010_group9_access_control.sql`; two helpers,
+`public.is_participating(uuid)` and `public.current_user_is_admin()`, are `security definer` so
+that policies can consult a profile without recursing through the very policy being evaluated.
+
+### Making someone an admin
+
+There is deliberately no UI for this. Set the flag by hand:
+
+```sql
+update public.profiles set is_admin = true where id = '<user-uuid>';
+```
+
+Admins get the moderation panel at `/admin` — the queue of pending applications with their
+invited-by info, the employer list, and a lookup for any account. The route 404s for everyone
+else.
+
+Admins get **read** carve-outs in RLS (they can see accounts of any status) and exactly one
+write: `public.admin_set_account_status(profile_id, status)`, which sets `status` and nothing
+else, refuses non-admins, and refuses an admin changing their own account. There is no admin
+UPDATE policy anywhere — an admin holding a valid token cannot `PATCH /profiles` directly any
+more than a normal member can.
+
+### Nobody can promote themselves
+
+`profiles` has no table-level `UPDATE` grant. `authenticated` holds a column-level grant on
+exactly `full_name` and `avatar_path`, so `status`, `is_admin` and `role` are unwritable from
+the client — a row-level policy could not have expressed that, because RLS cannot restrict
+*which columns* of a permitted row you may write.
+
 ## ZIP geocoding
 
 Users enter a ZIP; the system stores the ZIP's centroid as lat/lng. There is no external
