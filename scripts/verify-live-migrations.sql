@@ -1,5 +1,5 @@
 -- Read-only audit: does the live database actually contain everything
--- migrations 20260801000004 .. 20260801000008 claim to create?
+-- migrations 20260801000004 .. 20260801000009 claim to create?
 --
 -- Run it in the Supabase SQL editor. It writes nothing and returns one row per
 -- expected object, MISSING rows first.
@@ -43,7 +43,8 @@ begin
     ('000005','profiles','avatar_path'),
     ('000005','freelancer_profiles','credits_html'),
     ('000006','applications','credits_html'),
-    ('000008','jobs','company_network')
+    ('000008','jobs','company_network'),
+    ('000009','applications','first_viewed_at')
   ) as m(migration, tbl, col);
 
   -- ---- columns that must be GONE ------------------------------------------
@@ -69,7 +70,8 @@ begin
     ('000004','job_contacts'),
     ('000004','employer_billing'),
     ('000005','freelancer_videos'),
-    ('000008','job_titles')
+    ('000008','job_titles'),
+    ('000009','saved_jobs')
   ) as m(migration, tbl);
 
   -- ---- RLS enabled ---------------------------------------------------------
@@ -85,7 +87,8 @@ begin
     ('000004','job_contacts'),
     ('000004','employer_billing'),
     ('000005','freelancer_videos'),
-    ('000008','job_titles')
+    ('000008','job_titles'),
+    ('000009','saved_jobs')
   ) as m(migration, tbl);
 
   -- ---- policies ------------------------------------------------------------
@@ -113,7 +116,10 @@ begin
     ('000008','job_titles','job titles are readable unless the poster hid them'),
     ('000008','job_titles','employers insert titles for their own jobs'),
     ('000008','job_titles','employers update titles for their own jobs'),
-    ('000008','job_titles','employers delete titles for their own jobs')
+    ('000008','job_titles','employers delete titles for their own jobs'),
+    ('000009','saved_jobs','freelancers view their own saved jobs'),
+    ('000009','saved_jobs','freelancers save jobs for themselves'),
+    ('000009','saved_jobs','freelancers unsave their own saved jobs')
   ) as m(migration, tbl, pol);
 
   -- ---- table privileges (RLS narrows; it never grants) ---------------------
@@ -144,8 +150,20 @@ begin
     ('000008','authenticated','job_titles','SELECT'),
     ('000008','authenticated','job_titles','INSERT'),
     ('000008','authenticated','job_titles','UPDATE'),
-    ('000008','authenticated','job_titles','DELETE')
+    ('000008','authenticated','job_titles','DELETE'),
+    ('000009','authenticated','saved_jobs','SELECT'),
+    ('000009','authenticated','saved_jobs','INSERT'),
+    ('000009','authenticated','saved_jobs','DELETE')
   ) as m(migration, role_name, tbl, priv);
+
+  -- saved_jobs is deliberately UPDATE-less: the table has no mutable
+  -- column, so an UPDATE grant here would be surface with no purpose.
+  insert into migration_audit
+  select '000009', 'grant absent', 'authenticated -> saved_jobs UPDATE',
+         case when to_regclass('public.saved_jobs') is null then 'MISSING (no table)'
+              when has_table_privilege('authenticated', 'public.saved_jobs', 'UPDATE')
+                then 'MISSING (UPDATE granted but never intended)'
+              else 'ok' end;
 
   -- ---- functions -----------------------------------------------------------
   insert into migration_audit
@@ -156,7 +174,8 @@ begin
     ('000004','public.zip_centroid(text)'),
     ('000004','public.resolve_employer_home_zip()'),
     ('000007','public.job_applicants(uuid)'),
-    ('000008','public.job_feed(double precision, double precision, double precision, text)')
+    ('000008','public.job_feed(double precision, double precision, double precision, text)'),
+    ('000009','public.mark_applicants_viewed(uuid)')
   ) as m(migration, sig);
 
   -- job_applicants must RETURN credits_html (000007's whole point), and
@@ -181,7 +200,8 @@ begin
               else 'MISSING' end
   from (values
     ('000007','public.job_applicants(uuid)'),
-    ('000008','public.job_feed(double precision, double precision, double precision, text)')
+    ('000008','public.job_feed(double precision, double precision, double precision, text)'),
+    ('000009','public.mark_applicants_viewed(uuid)')
   ) as m(migration, sig);
 
   -- ---- triggers ------------------------------------------------------------

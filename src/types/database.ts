@@ -221,6 +221,9 @@ export interface Database {
           status: ApplicationStatus;
           cover_note: string | null;
           credits_html: string | null;
+          // Null = Applied, non-null = Viewed. Written only by
+          // mark_applicants_viewed().
+          first_viewed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -229,6 +232,21 @@ export interface Database {
           freelancer_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["applications"]["Row"]>;
+        Relationships: [];
+      };
+      saved_jobs: {
+        Row: {
+          freelancer_id: string;
+          job_id: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["saved_jobs"]["Row"]> & {
+          freelancer_id: string;
+          job_id: string;
+        };
+        // No Update: the table has no mutable column, and there is no UPDATE
+        // policy or grant on it.
+        Update: never;
         Relationships: [];
       };
     };
@@ -272,6 +290,11 @@ export interface Database {
           credits_html: string | null;
           created_at: string;
         }[];
+      };
+      mark_applicants_viewed: {
+        Args: { p_job_id: string };
+        /** How many applications were stamped as viewed by this call. */
+        Returns: number;
       };
     };
   };

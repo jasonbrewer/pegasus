@@ -112,6 +112,9 @@ export default async function EmployerDashboardPage() {
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <Link
                         href={`/dashboard/employer/jobs/${job.id}/applicants`}
+                        // Opening that page marks applications as viewed, so a
+                        // hover must not silently do it.
+                        prefetch={false}
                         className="text-sm underline"
                       >
                         {count === 0

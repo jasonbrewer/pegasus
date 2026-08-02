@@ -38,6 +38,16 @@ export default async function JobApplicantsPage({
     redirect("/dashboard/employer");
   }
 
+  // 8.1 — opening this page is what flips an applicant's status from Applied
+  // to Viewed on their own dashboard. Stamped here rather than behind a button
+  // because "the employer opened it" is exactly the event being recorded.
+  //
+  // The function only ever touches first_viewed_at, only on jobs owned by
+  // auth.uid(), and only where it is still null — so a reload does not move
+  // the timestamp. A failure here is not worth failing the page over: the
+  // employer still gets their applicants, and the next load retries.
+  await supabase.rpc("mark_applicants_viewed", { p_job_id: id });
+
   // Ranked by distance from the job, remote roles last. Security-definer, and
   // internally filtered to jobs owned by auth.uid().
   const { data: applicants, error } = await supabase.rpc("job_applicants", { p_job_id: id });
