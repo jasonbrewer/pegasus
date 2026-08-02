@@ -75,9 +75,19 @@ grant select, insert, update, delete on public.freelancer_videos to authenticate
 -- ---------------------------------------------------------------------------
 
 do $$
+declare
+  bucket_ready boolean;
 begin
-  if not exists (select 1 from information_schema.schemata where schema_name = 'storage') then
-    raise notice 'storage schema not present — skipping bucket setup (expected outside Supabase)';
+  -- pg_catalog.pg_namespace, NOT information_schema.schemata.
+  --
+  -- information_schema.schemata is privilege-filtered: it lists only schemas
+  -- the current role owns or holds a privilege on. On Supabase the storage
+  -- schema is owned by supabase_storage_admin, so a migration role without an
+  -- explicit grant sees ZERO rows there even though the schema plainly exists
+  -- — and this whole block silently no-opped while the migration reported
+  -- success. pg_namespace is the catalog and is never filtered.
+  if not exists (select 1 from pg_catalog.pg_namespace where nspname = 'storage') then
+    raise notice 'storage schema absent — skipping bucket setup (expected outside Supabase)';
     return;
   end if;
 
@@ -129,4 +139,24 @@ begin
         and (storage.foldername(name))[1] = auth.uid()::text
       );
   $p$;
+
+  -- Post-condition. If the storage schema exists, this block must have done
+  -- its work; anything else is a silent skip of the kind described above, and
+  -- should fail the migration rather than leave avatars unconfigured.
+  select exists (
+    select 1 from storage.buckets where id = 'avatars' and public is false
+  ) into bucket_ready;
+
+  if not bucket_ready then
+    raise exception
+      'avatars bucket missing or public after setup — storage configuration did not apply';
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and policyname = 'avatars readable by authenticated users'
+  ) then
+    raise exception 'avatars storage policies did not apply';
+  end if;
 end $$;
