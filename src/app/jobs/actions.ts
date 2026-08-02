@@ -99,3 +99,49 @@ export async function applyToJob(formData: FormData) {
   revalidatePath(`/jobs/${jobId}`);
   redirect(withParam(returnTo, "applied", jobId));
 }
+
+/**
+ * 8.2 — save / unsave a posting.
+ *
+ * A save is private to the freelancer who made it: the saved_jobs policies
+ * pin every row to auth.uid(), so this action cannot touch anyone else's
+ * saves however it is called. Employer accounts are turned away by the
+ * foreign key to freelancer_profiles, not by a check here.
+ */
+export async function toggleSavedJob(formData: FormData) {
+  const jobId = formData.get("job_id") as string;
+  const returnTo = safeReturnTo(formData.get("return_to"));
+  const saved = formData.get("saved") === "1";
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/sign-in?next=${encodeURIComponent(returnTo)}`);
+  }
+
+  if (!jobId) {
+    redirect(withParam(returnTo, "error", "Missing job"));
+  }
+
+  const { error } = saved
+    ? await supabase
+        .from("saved_jobs")
+        .delete()
+        .eq("freelancer_id", user.id)
+        .eq("job_id", jobId)
+    : await supabase.from("saved_jobs").insert({ freelancer_id: user.id, job_id: jobId });
+
+  // Saving something already saved lands on the same state, same as applying
+  // twice — a double click shouldn't be an error page.
+  if (error && error.code !== UNIQUE_VIOLATION) {
+    redirect(withParam(returnTo, "error", error.message));
+  }
+
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/dashboard/freelancer");
+  redirect(returnTo);
+}

@@ -29,6 +29,17 @@ export function formatDateRange(start: string | null, end: string | null) {
   return single ? formatDate(single) : null;
 }
 
+/**
+ * Formats a timestamptz column (created_at and friends) as a short calendar
+ * date. Rendered on the server, so it reads in the server's zone — good enough
+ * for "applied on", not for anything time-critical.
+ */
+export function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 /** Remote roles come back with a null distance and are labelled, not measured. */
 export function formatDistance(miles: number | null) {
   if (miles == null) return null;

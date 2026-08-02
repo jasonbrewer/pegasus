@@ -92,10 +92,20 @@ export function SubmitButton({ children }: { children: ReactNode }) {
   );
 }
 
-export function ButtonLink({ href, children }: { href: string; children: ReactNode }) {
+export function ButtonLink({
+  href,
+  children,
+  prefetch,
+}: {
+  href: string;
+  children: ReactNode;
+  /** Pass false for destinations that write on render — see the applicant view. */
+  prefetch?: false;
+}) {
   return (
     <Link
       href={href}
+      prefetch={prefetch}
       className="inline-block rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
     >
       {children}

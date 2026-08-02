@@ -16,7 +16,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import { applyToJob } from "../actions";
+import { applyToJob, toggleSavedJob } from "../actions";
 
 export default async function JobDetailPage({
   params,
@@ -49,8 +49,13 @@ export default async function JobDetailPage({
     notFound();
   }
 
-  const [{ data: profile }, { data: employer }, { data: place }, { data: existing }] =
-    await Promise.all([
+  const [
+    { data: profile },
+    { data: employer },
+    { data: place },
+    { data: existing },
+    { data: savedRow },
+  ] = await Promise.all([
       supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
       supabase
         .from("employer_profiles")
@@ -65,6 +70,14 @@ export default async function JobDetailPage({
       supabase
         .from("applications")
         .select("id, created_at")
+        .eq("job_id", id)
+        .eq("freelancer_id", user.id)
+        .maybeSingle(),
+      // 8.2 — the saved_jobs policies already scope this to the caller; the
+      // filter is just to fetch one row rather than the whole list.
+      supabase
+        .from("saved_jobs")
+        .select("job_id")
         .eq("job_id", id)
         .eq("freelancer_id", user.id)
         .maybeSingle(),
@@ -91,6 +104,7 @@ export default async function JobDetailPage({
   const isFreelancer = profile?.role === "freelancer";
   const isOwner = user.id === job.employer_id;
   const hasApplied = Boolean(existing) || query.applied === id;
+  const isSaved = Boolean(savedRow);
   const location = place ? [place.city, place.state].filter(Boolean).join(", ") : null;
 
   return (
@@ -104,7 +118,28 @@ export default async function JobDetailPage({
             </Link>
           ) : undefined
         }
-        action={<ButtonLink href="/jobs">Back to jobs</ButtonLink>}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* 8.2 — saving lives here on the detail page, not on the browse
+                list, so the list stays a list. */}
+            {isFreelancer && !isOwner && (
+              <form action={toggleSavedJob}>
+                <input type="hidden" name="job_id" value={job.id} />
+                <input type="hidden" name="return_to" value={`/jobs/${job.id}`} />
+                <input type="hidden" name="saved" value={isSaved ? "1" : "0"} />
+                <button
+                  type="submit"
+                  className={`inline-block rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50 ${
+                    isSaved ? "border-gray-900" : "border-gray-300"
+                  }`}
+                >
+                  {isSaved ? "Unsave" : "Save"}
+                </button>
+              </form>
+            )}
+            <ButtonLink href="/jobs">Back to jobs</ButtonLink>
+          </div>
+        }
       />
 
       <ErrorBanner message={query.error} />
@@ -145,7 +180,9 @@ export default async function JobDetailPage({
 
       <div className="mt-8">
         {isOwner ? (
-          <ButtonLink href={`/dashboard/employer/jobs/${job.id}/applicants`}>
+          // prefetch off: opening that page marks applications as viewed, so a
+          // hover must not do it.
+          <ButtonLink href={`/dashboard/employer/jobs/${job.id}/applicants`} prefetch={false}>
             View applicants
           </ButtonLink>
         ) : hasApplied ? (
