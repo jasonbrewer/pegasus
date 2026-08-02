@@ -15,6 +15,7 @@ import {
   ButtonLink,
   inputClass,
 } from "@/components/ui";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { applyToJob } from "../actions";
 
 export default async function JobDetailPage({
@@ -126,24 +127,43 @@ export default async function JobDetailPage({
         ) : job.status !== "open" ? (
           <p className="text-sm text-gray-500">This job is no longer accepting applications.</p>
         ) : (
-          <form action={applyToJob} className="flex flex-col gap-3">
+          <form action={applyToJob} className="flex flex-col gap-5">
             <input type="hidden" name="job_id" value={job.id} />
             <input type="hidden" name="return_to" value={`/jobs/${job.id}`} />
 
+            <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+              Apply
+            </h2>
+
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">Add a note (optional)</span>
+              <span className="text-sm font-medium">Message</span>
               <textarea
                 name="cover_note"
-                rows={4}
-                placeholder="Relevant experience, availability, gear…"
+                required
+                rows={5}
+                placeholder="Why you're a fit, your availability for these dates, gear you bring…"
                 className={inputClass}
               />
             </label>
 
-            <div>
-              <SubmitButton>Apply</SubmitButton>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Credits</span>
+              <RichTextEditor
+                name="credits_html"
+                placeholder="Paste your credits here — formatting is kept…"
+              />
+              <span className="text-xs text-gray-500">
+                Optional. Paste from a document and the styling comes with it.
+              </span>
             </div>
-            <p className="text-xs text-gray-500">Applying is always free and unlimited.</p>
+
+            <div>
+              <SubmitButton>Send application</SubmitButton>
+            </div>
+            <p className="text-xs text-gray-500">
+              Applying is always free and unlimited. A message and your credits are all that
+              get sent — the employer opens your full profile from there.
+            </p>
           </form>
         )}
       </div>

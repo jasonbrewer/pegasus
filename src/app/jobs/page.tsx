@@ -13,7 +13,6 @@ import {
   Card,
   inputClass,
 } from "@/components/ui";
-import { applyToJob } from "./actions";
 
 const RADIUS_PRESETS = [25, 50, 100];
 const VALID_ROLE_SLUGS = new Set(ROLES.map((r) => r.slug));
@@ -117,13 +116,6 @@ export default async function JobsPage({
   const originLabel = centroid
     ? [centroid.city, centroid.state].filter(Boolean).join(", ")
     : null;
-
-  // Apply posts back to the current search so filters survive the round trip.
-  const returnQuery = new URLSearchParams();
-  if (params.zip) returnQuery.set("zip", params.zip);
-  if (params.role) returnQuery.set("role", params.role);
-  if (params.radius) returnQuery.set("radius", params.radius);
-  const returnTo = returnQuery.toString() ? `/jobs?${returnQuery}` : "/jobs";
 
   return (
     <PageShell>
@@ -249,26 +241,32 @@ export default async function JobsPage({
                       {job.description}
                     </p>
 
+                    {/* Applying always goes through the job page: an
+                        application must carry a message, so there is no
+                        one-click apply from the feed. */}
                     <div className="mt-3 flex items-center gap-3">
                       {appliedJobIds.has(job.id) ? (
-                        <span className="text-sm font-medium text-green-700">Applied</span>
-                      ) : isFreelancer ? (
-                        <form action={applyToJob}>
-                          <input type="hidden" name="job_id" value={job.id} />
-                          <input type="hidden" name="return_to" value={returnTo} />
-                          <button
-                            type="submit"
-                            className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                        <>
+                          <span className="text-sm font-medium text-green-700">Applied</span>
+                          <Link
+                            href={`/jobs/${job.id}`}
+                            className="text-sm text-gray-500 underline"
                           >
-                            Apply
-                          </button>
-                        </form>
-                      ) : null}
-                      <Link href={`/jobs/${job.id}`} className="text-sm text-gray-500 underline">
-                        {appliedJobIds.has(job.id) || !isFreelancer
-                          ? "View details"
-                          : "Details & add a note"}
-                      </Link>
+                            View details
+                          </Link>
+                        </>
+                      ) : isFreelancer ? (
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                        >
+                          Apply
+                        </Link>
+                      ) : (
+                        <Link href={`/jobs/${job.id}`} className="text-sm text-gray-500 underline">
+                          View details
+                        </Link>
+                      )}
                     </div>
                   </Card>
                 </li>
