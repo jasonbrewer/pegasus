@@ -120,6 +120,12 @@ create policy "freelancers delete their own contact info"
   to authenticated
   using (auth.uid() = profile_id);
 
+-- Table privileges are a separate gate from RLS: a policy narrows access that
+-- a GRANT has already given, so without this every read raises
+-- "permission denied for table". Granted explicitly rather than relying on the
+-- project's default privileges, so a fresh `supabase db push` works standalone.
+grant select, insert, update, delete on public.freelancer_contacts to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 1.2e — Job poster contact info
 --
@@ -203,6 +209,10 @@ create policy "employers delete contact info for their own jobs"
     )
   );
 
+-- Delete is granted to match the delete policy above; without the grant that
+-- policy would be unreachable.
+grant select, insert, update, delete on public.job_contacts to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 1.2f — Employer billing/contact fields currently leak
 --
@@ -251,6 +261,40 @@ create policy "employers update their own billing row"
   to authenticated
   using (auth.uid() = profile_id)
   with check (auth.uid() = profile_id);
+
+-- No delete grant: there is deliberately no delete policy on billing rows,
+-- which are created by the signup trigger and cascade with the profile.
+grant select, insert, update on public.employer_billing to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 1.2g — Table privileges for every table, not just the new ones.
+--
+-- RLS narrows access that a GRANT has already given; it never grants. Tables
+-- created by a raw migration only pick up privileges if the project's default
+-- privileges happen to cover the creating role, which is exactly what failed
+-- for the tables above ("permission denied for table").
+--
+-- Verified: with no blanket grant, `authenticated` could not select from any
+-- of the eight pre-existing tables either, so a fresh `supabase db push` would
+-- have broken well beyond Group 1. These statements are idempotent and safe to
+-- re-run against a project where the privileges are already in place.
+--
+-- Grants deliberately mirror the policies on each table: no INSERT on the
+-- profile tables (rows are created by the security-definer signup trigger),
+-- no DELETE where no delete policy exists.
+-- ---------------------------------------------------------------------------
+
+-- Reference data: readable without a session (signup validates a ZIP before
+-- the user has one, and the role taxonomy is static).
+grant select on public.roles to anon, authenticated;
+grant select on public.zip_codes to anon, authenticated;
+
+grant select, update on public.profiles to authenticated;
+grant select, update on public.freelancer_profiles to authenticated;
+grant select, update on public.employer_profiles to authenticated;
+grant select, insert, update, delete on public.freelancer_roles to authenticated;
+grant select, insert, update, delete on public.jobs to authenticated;
+grant select, insert, update on public.applications to authenticated;
 
 -- Keep the signup trigger's contract intact now that the columns have moved:
 -- every new employer gets an (empty) billing row alongside their profile.
