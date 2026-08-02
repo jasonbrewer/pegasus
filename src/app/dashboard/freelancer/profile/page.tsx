@@ -56,6 +56,12 @@ export default async function EditFreelancerProfilePage({
     .select("role_slug")
     .eq("freelancer_id", user.id);
 
+  const { data: contact } = await supabase
+    .from("freelancer_contacts")
+    .select("phone, contact_email")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
   const { data: videos } = await supabase
     .from("freelancer_videos")
     .select("url")
@@ -161,6 +167,35 @@ export default async function EditFreelancerProfilePage({
                 </div>
               </div>
             ))}
+          </div>
+        </Fieldset>
+
+        <Fieldset legend="Contact details">
+          <p className="text-xs text-gray-500">
+            Private. Only you can see these — an employer sees them once you apply to one of
+            their jobs, and never from browsing profiles.
+          </p>
+          <div className="mt-1 grid gap-5 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Phone</span>
+              <input
+                name="phone"
+                type="tel"
+                placeholder="(804) 555-0148"
+                defaultValue={contact?.phone ?? ""}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Contact email</span>
+              <input
+                name="contact_email"
+                type="email"
+                placeholder="you@example.com"
+                defaultValue={contact?.contact_email ?? ""}
+                className={inputClass}
+              />
+            </label>
           </div>
         </Fieldset>
 
