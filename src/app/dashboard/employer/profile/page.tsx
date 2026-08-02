@@ -125,7 +125,6 @@ export default async function EditEmployerProfilePage({
 
         <div className="flex items-center gap-4 pt-1">
           <SubmitButton>Save profile</SubmitButton>
-          <ButtonLink href="/dashboard/employer">Back to dashboard</ButtonLink>
         </div>
       </form>
     </PageShell>

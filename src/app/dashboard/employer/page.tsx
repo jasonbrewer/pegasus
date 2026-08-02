@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/auth/actions";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
 
@@ -118,18 +117,6 @@ export default async function EmployerDashboardPage() {
         </Link>
         <ButtonLink href={`/employers/${user.id}`}>View public profile</ButtonLink>
       </div>
-
-      <div className="mt-6 flex items-center gap-4">
-        <form action={signOut}>
-          <button type="submit" className="text-sm text-gray-500 underline">
-            Sign out
-          </button>
-        </form>
-      </div>
-
-      <p className="mt-6 text-sm text-gray-500">
-        The proximity-ranked applicants view lands next.
-      </p>
     </PageShell>
   );
 }

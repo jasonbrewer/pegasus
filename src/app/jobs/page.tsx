@@ -11,7 +11,6 @@ import {
   SuccessBanner,
   Badge,
   Card,
-  ButtonLink,
   inputClass,
 } from "@/components/ui";
 import { applyToJob } from "./actions";
@@ -131,7 +130,6 @@ export default async function JobsPage({
       <PageHeader
         title="Browse jobs"
         subtitle={originLabel ? `Ranked by distance from ${originLabel}` : "Enter a ZIP to start"}
-        action={<ButtonLink href="/dashboard/freelancer">Dashboard</ButtonLink>}
       />
 
       <ErrorBanner message={zipError ?? params.error ?? feedError?.message} />

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/auth/actions";
 import { PageShell, PageHeader, Card, ButtonLink, DetailRow } from "@/components/ui";
 
 export default async function FreelancerDashboardPage() {
@@ -83,14 +82,6 @@ export default async function FreelancerDashboardPage() {
           Browse jobs
         </Link>
         <ButtonLink href={`/freelancers/${user.id}`}>View public profile</ButtonLink>
-      </div>
-
-      <div className="mt-6">
-        <form action={signOut}>
-          <button type="submit" className="text-sm text-gray-500 underline">
-            Sign out
-          </button>
-        </form>
       </div>
     </PageShell>
   );
