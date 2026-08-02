@@ -83,16 +83,6 @@ export default async function JobsPage({
       })
     : { data: null, error: null };
 
-  // job_feed returns employer_id and location_zip; resolve both for display.
-  const employerIds = [...new Set((jobs ?? []).map((j) => j.employer_id))];
-  const { data: employers } = employerIds.length
-    ? await supabase
-        .from("employer_profiles")
-        .select("profile_id, company_name")
-        .in("profile_id", employerIds)
-    : { data: [] };
-  const companyById = new Map((employers ?? []).map((e) => [e.profile_id, e.company_name]));
-
   // Which of these jobs the viewer has already applied to. RLS scopes
   // applications to the caller's own rows, so this can't leak other people's.
   const jobIds = (jobs ?? []).map((j) => j.id);
@@ -197,7 +187,6 @@ export default async function JobsPage({
             {jobs.map((job) => {
               const role = ROLE_BY_SLUG.get(job.role_slug);
               const isRemote = job.role_category === "remote";
-              const company = companyById.get(job.employer_id);
               const place = placeByZip.get(job.location_zip);
               const rate = formatRate(job.rate_cents, job.rate_type);
               const dates = formatDateRange(job.start_date, job.end_date);
@@ -208,7 +197,9 @@ export default async function JobsPage({
                   <Card>
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <Link href={`/jobs/${job.id}`} className="font-medium hover:underline">
-                        {job.title}
+                        {/* job_feed returns a null title when the poster hid
+                            it — the rule lives in the job_titles policy. */}
+                        {job.title ?? "Title hidden by the poster"}
                       </Link>
                       <span className="text-sm text-gray-500">
                         {isRemote ? "Remote" : distance}
@@ -216,13 +207,9 @@ export default async function JobsPage({
                     </div>
 
                     <p className="mt-0.5 text-sm text-gray-600">
-                      {company ? (
-                        <Link href={`/employers/${job.employer_id}`} className="hover:underline">
-                          {company}
-                        </Link>
-                      ) : (
-                        "Employer"
-                      )}
+                      <Link href={`/employers/${job.employer_id}`} className="hover:underline">
+                        {job.company_network}
+                      </Link>
                       {!isRemote && place && <span className="text-gray-400"> · {place}</span>}
                     </p>
 

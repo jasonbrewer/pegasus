@@ -57,12 +57,18 @@ export default async function EmployerProfilePage({
   // RLS returns open jobs to everyone, plus draft/closed ones to the owner.
   const { data: jobs } = await supabase
     .from("jobs")
-    .select("id, title, role_slug, location_zip, start_date, end_date, rate_cents, rate_type, status, travel_expected")
+    .select("id, company_network, role_slug, location_zip, start_date, end_date, rate_cents, rate_type, status, travel_expected")
     .eq("employer_id", id)
     .order("created_at", { ascending: false });
 
   // Resolve each job's ZIP to a city/state in one round trip; the raw ZIP is
   // never rendered.
+  const jobIds = (jobs ?? []).map((j) => j.id);
+  const { data: titleRows } = jobIds.length
+    ? await supabase.from("job_titles").select("job_id, title").in("job_id", jobIds)
+    : { data: [] };
+  const titleByJob = new Map((titleRows ?? []).map((t) => [t.job_id, t.title]));
+
   const zips = [...new Set((jobs ?? []).map((j) => j.location_zip))];
   const { data: places } = zips.length
     ? await supabase.from("zip_codes").select("zip, city, state").in("zip", zips)
@@ -135,7 +141,9 @@ export default async function EmployerProfilePage({
               <li key={job.id}>
                 <Card>
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="font-medium">{job.title}</p>
+                    <p className="font-medium">
+                      {titleByJob.get(job.id) ?? "Title hidden by the poster"}
+                    </p>
                     {job.status !== "open" && <Badge>{job.status}</Badge>}
                   </div>
 
