@@ -16,6 +16,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import { ParticipationNotice } from "@/components/participation-notice";
 import { applyToJob, toggleSavedJob } from "../actions";
 
 export default async function JobDetailPage({
@@ -56,7 +57,7 @@ export default async function JobDetailPage({
     { data: existing },
     { data: savedRow },
   ] = await Promise.all([
-      supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("role, status").eq("id", user.id).maybeSingle(),
       supabase
         .from("employer_profiles")
         .select("company_name")
@@ -102,6 +103,9 @@ export default async function JobDetailPage({
   const role = ROLE_BY_SLUG.get(job.role_slug);
   const isRemote = role?.category === "remote";
   const isFreelancer = profile?.role === "freelancer";
+  // Pending and blocked freelancers cannot apply — the applications INSERT
+  // policy refuses them. Showing the form anyway would just produce an error.
+  const canApply = profile?.status === "approved";
   const isOwner = user.id === job.employer_id;
   const hasApplied = Boolean(existing) || query.applied === id;
   const isSaved = Boolean(savedRow);
@@ -191,6 +195,8 @@ export default async function JobDetailPage({
           </p>
         ) : !isFreelancer ? (
           <p className="text-sm text-gray-500">Only freelancer accounts can apply to jobs.</p>
+        ) : !canApply ? (
+          <ParticipationNotice viewer={profile} />
         ) : job.status !== "open" ? (
           <p className="text-sm text-gray-500">This job is no longer accepting applications.</p>
         ) : (

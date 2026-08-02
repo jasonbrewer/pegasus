@@ -23,6 +23,18 @@ export async function createJob(formData: FormData) {
     redirect("/sign-in");
   }
 
+  // 9.4 — the jobs INSERT policy already refuses a blocked employer. This
+  // turns that refusal into a sentence rather than an RLS error.
+  const { data: poster } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (poster?.status !== "approved") {
+    fail(NEW_JOB_PATH, "Your account can't post jobs right now — get in touch if you think this is a mistake");
+  }
+
   // --- required fields -----------------------------------------------------
   const companyNetwork = (formData.get("company_network") as string)?.trim();
   const title = (formData.get("title") as string)?.trim();

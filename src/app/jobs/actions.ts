@@ -52,12 +52,27 @@ export async function applyToJob(formData: FormData) {
   // check has to happen here.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, status")
     .eq("id", user.id)
     .maybeSingle();
 
   if (profile?.role !== "freelancer") {
     redirect(withParam(returnTo, "error", "Only freelancers can apply to jobs"));
+  }
+
+  // 9.4 — the applications INSERT policy already refuses a non-approved
+  // account. Checking here only buys a sentence the applicant can act on
+  // instead of a row-level-security error.
+  if (profile.status !== "approved") {
+    redirect(
+      withParam(
+        returnTo,
+        "error",
+        profile.status === "pending"
+          ? "Your application to join is still under review — you can apply to jobs once you're approved"
+          : "Your account is blocked, so you can't apply to jobs"
+      )
+    );
   }
 
   const message = ((formData.get("cover_note") as string) ?? "").trim();

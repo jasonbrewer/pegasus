@@ -8,6 +8,8 @@ export type JobStatus = "draft" | "open" | "closed";
 export type RateType = "hourly" | "day" | "flat";
 export type PaymentStatus = "unpaid" | "paid" | "waived";
 export type ApplicationStatus = "submitted" | "shortlisted" | "rejected" | "hired";
+/** 9.1 — whether an account may take part in the marketplace at all. */
+export type AccountStatus = "pending" | "approved" | "blocked";
 
 export interface Database {
   public: {
@@ -18,6 +20,9 @@ export interface Database {
           role: AccountRole;
           full_name: string;
           avatar_path: string | null;
+          status: AccountStatus;
+          is_admin: boolean;
+          invited_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -26,7 +31,9 @@ export interface Database {
           role: AccountRole;
           full_name: string;
         };
-        Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        // Only these two columns carry an UPDATE grant — status, is_admin and
+        // role are unwritable from the client by design (migration 000010).
+        Update: Partial<Pick<Database["public"]["Tables"]["profiles"]["Row"], "full_name" | "avatar_path">>;
         Relationships: [];
       };
       roles: {
@@ -295,6 +302,19 @@ export interface Database {
         Args: { p_job_id: string };
         /** How many applications were stamped as viewed by this call. */
         Returns: number;
+      };
+      /** The only write path for profiles.status. Admin-gated, raises otherwise. */
+      admin_set_account_status: {
+        Args: { p_profile_id: string; p_status: AccountStatus };
+        Returns: AccountStatus;
+      };
+      current_user_is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      is_participating: {
+        Args: { p_profile_id: string };
+        Returns: boolean;
       };
     };
   };

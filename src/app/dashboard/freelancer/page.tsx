@@ -6,6 +6,7 @@ import { ROLE_BY_SLUG } from "@/lib/roles";
 import { formatTimestamp } from "@/lib/format";
 import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
 import { InviteSection } from "@/components/invite-section";
+import { ParticipationNotice } from "@/components/participation-notice";
 
 export default async function FreelancerDashboardPage() {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function FreelancerDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, role, status")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -116,6 +117,10 @@ export default async function FreelancerDashboardPage() {
         subtitle={user.email}
         action={<ButtonLink href="/dashboard/freelancer/profile">Edit profile</ButtonLink>}
       />
+
+      {/* 9.4 — a pending or blocked freelancer is told why the marketplace
+          looks quiet. The invisibility itself is RLS, not this banner. */}
+      <ParticipationNotice viewer={profile} />
 
       {needsSetup && (
         <p className="mb-6 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">

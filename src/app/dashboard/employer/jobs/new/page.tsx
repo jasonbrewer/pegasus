@@ -11,6 +11,7 @@ import {
   ButtonLink,
   inputClass,
 } from "@/components/ui";
+import { ParticipationNotice } from "@/components/participation-notice";
 import { createJob } from "../actions";
 
 export default async function NewJobPage({
@@ -27,6 +28,26 @@ export default async function NewJobPage({
 
   if (!user) {
     redirect("/sign-in");
+  }
+
+  // 9.4 — a blocked employer's insert is refused by the jobs INSERT policy, so
+  // there is no point rendering the form. The notice explains it instead.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile && profile.status !== "approved") {
+    return (
+      <PageShell>
+        <PageHeader
+          title="Post a job"
+          action={<ButtonLink href="/dashboard/employer">Back</ButtonLink>}
+        />
+        <ParticipationNotice viewer={profile} />
+      </PageShell>
+    );
   }
 
   // Prefill the company from their profile; they can override it per post,
