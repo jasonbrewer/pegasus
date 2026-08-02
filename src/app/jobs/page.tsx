@@ -5,6 +5,12 @@ import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { ROLES_BY_GROUP, ROLE_BY_SLUG, ROLES } from "@/lib/roles";
 import { formatRate, formatDateRange, formatDistance } from "@/lib/format";
 import {
+  resolveSearchRadius,
+  MIN_RADIUS_MILES,
+  MAX_RADIUS_MILES,
+  FALLBACK_RADIUS_MILES,
+} from "@/lib/search-radius";
+import {
   PageShell,
   PageHeader,
   ErrorBanner,
@@ -14,7 +20,6 @@ import {
   inputClass,
 } from "@/components/ui";
 
-const RADIUS_PRESETS = [25, 50, 100];
 const VALID_ROLE_SLUGS = new Set(ROLES.map((r) => r.slug));
 
 export default async function JobsPage({
@@ -24,6 +29,7 @@ export default async function JobsPage({
     zip?: string;
     role?: string;
     radius?: string;
+    any_distance?: string;
     applied?: string;
     error?: string;
   }>;
@@ -58,21 +64,18 @@ export default async function JobsPage({
 
   const roleFilter = params.role && VALID_ROLE_SLUGS.has(params.role) ? params.role : null;
 
-  const defaultRadius = freelancer?.travel_radius_miles ?? 50;
-  const radiusOptions = RADIUS_PRESETS.includes(defaultRadius)
-    ? RADIUS_PRESETS
-    : [...RADIUS_PRESETS, defaultRadius].sort((a, b) => a - b);
+  // Default to the distance the freelancer already said they will travel.
+  const defaultRadius = freelancer?.travel_radius_miles ?? FALLBACK_RADIUS_MILES;
 
-  // "any" means no cap, which job_feed expresses as a null radius — distinct
-  // from "not supplied", which falls back to the freelancer's own radius.
-  const radiusParam = params.radius ?? String(defaultRadius);
-  let radiusMiles: number | null;
-  if (radiusParam === "any") {
-    radiusMiles = null;
-  } else {
-    const parsed = Number(radiusParam);
-    radiusMiles = Number.isFinite(parsed) && parsed > 0 ? parsed : defaultRadius;
-  }
+  // 6.1 — typed distance with an explicit "Any distance" escape hatch.
+  // The branching lives in src/lib/search-radius.ts so it can be tested.
+  const anyDistance = params.any_distance === "on";
+  const radiusRaw = params.radius;
+  const { radiusMiles, error: radiusError } = resolveSearchRadius({
+    radiusRaw,
+    anyDistanceRaw: params.any_distance,
+    defaultRadius,
+  });
 
   const { data: jobs, error: feedError } = centroid
     ? await supabase.rpc("job_feed", {
@@ -114,7 +117,7 @@ export default async function JobsPage({
         subtitle={originLabel ? `Ranked by distance from ${originLabel}` : "Enter a ZIP to start"}
       />
 
-      <ErrorBanner message={zipError ?? params.error ?? feedError?.message} />
+      <ErrorBanner message={zipError ?? radiusError ?? params.error ?? feedError?.message} />
       {params.applied && <SuccessBanner message="Application sent." />}
 
       <form method="GET" className="mb-8 grid gap-3 sm:grid-cols-[1fr_1.4fr_1fr_auto]">
@@ -145,17 +148,26 @@ export default async function JobsPage({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-gray-600">Within</span>
-          <select name="radius" defaultValue={radiusParam} className={inputClass}>
-            {radiusOptions.map((miles) => (
-              <option key={miles} value={miles}>
-                {miles} miles
-              </option>
-            ))}
-            <option value="any">Any distance</option>
-          </select>
-        </label>
+        <div className="flex flex-col gap-1.5">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-gray-600">Within (miles)</span>
+            <input
+              name="radius"
+              type="number"
+              inputMode="numeric"
+              min={MIN_RADIUS_MILES}
+              max={MAX_RADIUS_MILES}
+              step={1}
+              defaultValue={radiusRaw ?? String(defaultRadius)}
+              aria-describedby="any-distance"
+              className={inputClass}
+            />
+          </label>
+          <label id="any-distance" className="flex items-center gap-1.5 text-xs text-gray-600">
+            <input type="checkbox" name="any_distance" defaultChecked={anyDistance} />
+            Any distance
+          </label>
+        </div>
 
         <div className="flex items-end">
           <button
@@ -165,6 +177,10 @@ export default async function JobsPage({
             Search
           </button>
         </div>
+        <p className="text-xs text-gray-500 sm:col-span-4">
+          Ticking &ldquo;Any distance&rdquo; ignores the mileage box. Remote roles always show,
+          however far away they are.
+        </p>
       </form>
 
       {!centroid ? (
@@ -180,6 +196,7 @@ export default async function JobsPage({
         <>
           <p className="mb-3 text-xs text-gray-500">
             {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
+            {radiusMiles === null ? " · any distance" : ` · within ${radiusMiles} miles`}
           </p>
 
           {/* job_feed already orders these: nearest first, remote last. Do not re-sort. */}
