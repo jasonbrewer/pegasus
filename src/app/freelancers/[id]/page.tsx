@@ -70,6 +70,19 @@ export default async function FreelancerProfilePage({
     .eq("freelancer_id", id)
     .order("sort_order");
 
+  // Contact details are NOT filtered here. The freelancer_contacts SELECT
+  // policy decides: the seeker themselves, or an employer this seeker has
+  // applied to. Anyone else gets no row back. Re-checking the rule in app code
+  // would risk drifting from the policy — the point is that the database is
+  // the single place the rule lives.
+  const { data: contact } = await supabase
+    .from("freelancer_contacts")
+    .select("phone, contact_email")
+    .eq("profile_id", id)
+    .maybeSingle();
+
+  const hasContact = Boolean(contact?.phone || contact?.contact_email);
+
   const avatarUrl = await signedAvatarUrl(supabase, profile?.avatar_path);
 
   // The reel field and any extra video links render together.
@@ -169,6 +182,50 @@ export default async function FreelancerProfilePage({
             />
           </dl>
         </Card>
+
+        {hasContact && (
+          <Card>
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+                Contact
+              </h2>
+              <span className="text-xs text-gray-400">
+                {isOwner
+                  ? "Private — shared with an employer only when you apply to their job"
+                  : "Shared with you because they applied to one of your jobs"}
+              </span>
+            </div>
+            <dl>
+              <DetailRow
+                label="Phone"
+                value={
+                  contact?.phone ? (
+                    <a href={`tel:${contact.phone}`} className="underline">
+                      {contact.phone}
+                    </a>
+                  ) : null
+                }
+              />
+              <DetailRow
+                label="Email"
+                value={
+                  contact?.contact_email ? (
+                    <a href={`mailto:${contact.contact_email}`} className="underline">
+                      {contact.contact_email}
+                    </a>
+                  ) : null
+                }
+              />
+            </dl>
+          </Card>
+        )}
+
+        {isOwner && !hasContact && (
+          <p className="text-sm text-gray-500">
+            You haven&apos;t added contact details yet. Employers see them only after you apply
+            to one of their jobs.
+          </p>
+        )}
 
         {freelancer.credits_html && (
           <section>

@@ -141,6 +141,28 @@ export async function updateFreelancerProfile(formData: FormData) {
     fail(freelancerError.message);
   }
 
+  // Contact details live in their own table so RLS can restrict them to the
+  // seeker and to employers they have applied to. Upsert rather than update:
+  // accounts created before that table existed have no row.
+  const contactEmail = optionalText(formData.get("contact_email"));
+
+  if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+    fail("Enter a valid contact email");
+  }
+
+  const { error: contactError } = await supabase.from("freelancer_contacts").upsert(
+    {
+      profile_id: user.id,
+      phone: optionalText(formData.get("phone")),
+      contact_email: contactEmail,
+    },
+    { onConflict: "profile_id" }
+  );
+
+  if (contactError) {
+    fail(contactError.message);
+  }
+
   const { error: deleteRolesError } = await supabase
     .from("freelancer_roles")
     .delete()
