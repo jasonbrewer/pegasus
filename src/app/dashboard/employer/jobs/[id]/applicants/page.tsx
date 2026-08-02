@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { formatRate, formatDistance } from "@/lib/format";
-import { PageShell, PageHeader, Badge, Card, ButtonLink } from "@/components/ui";
+import { PageShell, PageHeader, Badge, Card } from "@/components/ui";
 
 export default async function JobApplicantsPage({
   params,
@@ -84,7 +84,6 @@ export default async function JobApplicantsPage({
             {jobRole && <span className="text-gray-400"> · {jobRole.label}</span>}
           </>
         }
-        action={<ButtonLink href="/dashboard/employer">Dashboard</ButtonLink>}
       />
 
       {error && (

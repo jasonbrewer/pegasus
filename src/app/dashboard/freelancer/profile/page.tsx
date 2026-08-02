@@ -169,7 +169,6 @@ export default async function EditFreelancerProfilePage({
 
         <div className="flex items-center gap-4 pt-1">
           <SubmitButton>Save profile</SubmitButton>
-          <ButtonLink href="/dashboard/freelancer">Back to dashboard</ButtonLink>
         </div>
       </form>
     </PageShell>
