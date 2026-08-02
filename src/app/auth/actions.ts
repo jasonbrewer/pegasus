@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
+import { parseInviteRef } from "@/lib/invite";
 import type { AccountRole } from "@/types/database";
 
 export async function signUp(formData: FormData) {
@@ -31,6 +32,14 @@ export async function signUp(formData: FormData) {
       full_name: fullName,
       company_name: formData.get("company_name") as string,
     };
+  }
+
+  // 7.1 — remember who invited them, and do nothing else with it. It rides
+  // along in the account's signup metadata, so no new column or table is
+  // needed and a later referral feature can pick it up.
+  const invitedBy = parseInviteRef(formData.get("invited_by") as string | undefined);
+  if (invitedBy) {
+    metadata.invited_by = invitedBy;
   }
 
   const { error } = await supabase.auth.signUp({
