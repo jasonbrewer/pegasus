@@ -138,10 +138,45 @@ export default async function JobApplicantsPage({
                     )}
 
                     {applicant.cover_note && (
-                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-gray-700">
-                        {applicant.cover_note}
+                      <div className="mt-3">
+                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+                          Message
+                        </p>
+                        {/* Plain text — rendered as text, never as HTML. */}
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
+                          {applicant.cover_note}
+                        </p>
+                      </div>
+                    )}
+
+                    {applicant.credits_html && (
+                      <div className="mt-3">
+                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+                          Credits
+                        </p>
+                        {/* Sanitized server-side at apply time (src/lib/sanitize.ts).
+                            Never rendered straight from user input. */}
+                        <div
+                          className="text-sm leading-relaxed text-gray-700 [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
+                          dangerouslySetInnerHTML={{ __html: applicant.credits_html }}
+                        />
+                      </div>
+                    )}
+
+                    {!applicant.cover_note && !applicant.credits_html && (
+                      <p className="mt-3 text-sm text-gray-400">
+                        No message sent with this application.
                       </p>
                     )}
+
+                    <p className="mt-3">
+                      <Link
+                        href={`/freelancers/${applicant.freelancer_id}`}
+                        className="text-sm underline"
+                      >
+                        View full profile
+                      </Link>
+                    </p>
                   </Card>
                 </li>
               );

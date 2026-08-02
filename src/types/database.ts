@@ -253,6 +253,7 @@ export interface Database {
           status: ApplicationStatus;
           distance_miles: number | null;
           cover_note: string | null;
+          credits_html: string | null;
           created_at: string;
         }[];
       };
