@@ -40,7 +40,7 @@ export default async function JobDetailPage({
   const { data: job } = await supabase
     .from("jobs")
     .select(
-      "id, employer_id, role_slug, title, description, location_zip, travel_expected, start_date, end_date, rate_cents, rate_type, status"
+      "id, employer_id, role_slug, company_network, description, location_zip, travel_expected, start_date, end_date, rate_cents, rate_type, status"
     )
     .eq("id", id)
     .maybeSingle();
@@ -70,6 +70,22 @@ export default async function JobDetailPage({
         .maybeSingle(),
     ]);
 
+  // Not filtered here: the job_titles policy returns no row when the poster
+  // hid the title and the viewer is not the owner.
+  const { data: titleRow } = await supabase
+    .from("job_titles")
+    .select("title")
+    .eq("job_id", id)
+    .maybeSingle();
+
+  // Shown only when the poster ticked "share with applicants" AND the viewer
+  // applied — again decided by RLS, not by this page.
+  const { data: contact } = await supabase
+    .from("job_contacts")
+    .select("contact_name, contact_email, contact_phone")
+    .eq("job_id", id)
+    .maybeSingle();
+
   const role = ROLE_BY_SLUG.get(job.role_slug);
   const isRemote = role?.category === "remote";
   const isFreelancer = profile?.role === "freelancer";
@@ -80,11 +96,11 @@ export default async function JobDetailPage({
   return (
     <PageShell>
       <PageHeader
-        title={job.title}
+        title={titleRow?.title ?? "Title hidden by the poster"}
         subtitle={
           employer?.company_name ? (
             <Link href={`/employers/${job.employer_id}`} className="hover:underline">
-              {employer.company_name}
+              {job.company_network}
             </Link>
           ) : undefined
         }
@@ -110,8 +126,22 @@ export default async function JobDetailPage({
           <DetailRow label="Rate" value={formatRate(job.rate_cents, job.rate_type)} />
           <DetailRow label="Dates" value={formatDateRange(job.start_date, job.end_date)} />
           <DetailRow label="Location" value={isRemote ? "Remote" : location} />
+          <DetailRow label="Company / network" value={job.company_network} />
         </dl>
       </Card>
+
+      {contact && (
+        <Card>
+          <p className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-500">
+            Contact
+          </p>
+          <dl>
+            <DetailRow label="Name" value={contact.contact_name} />
+            <DetailRow label="Email" value={contact.contact_email} />
+            <DetailRow label="Phone" value={contact.contact_phone} />
+          </dl>
+        </Card>
+      )}
 
       <div className="mt-8">
         {isOwner ? (

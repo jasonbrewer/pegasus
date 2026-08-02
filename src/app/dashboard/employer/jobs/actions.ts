@@ -8,8 +8,8 @@ import type { RateType } from "@/types/database";
 
 const NEW_JOB_PATH = "/dashboard/employer/jobs/new";
 
-function fail(message: string): never {
-  redirect(`${NEW_JOB_PATH}?error=${encodeURIComponent(message)}`);
+function fail(path: string, message: string): never {
+  redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
 
 export async function createJob(formData: FormData) {
@@ -23,56 +23,140 @@ export async function createJob(formData: FormData) {
     redirect("/sign-in");
   }
 
-  // Validate the ZIP up front so the employer gets a clean error. The
-  // jobs_resolve_location_zip trigger re-derives lat/lng on write, so the
-  // stored coordinates always come from zip_codes rather than the client.
-  const centroid = await lookupZip(supabase, formData.get("location_zip") as string);
-
-  if (!centroid) {
-    fail(INVALID_ZIP_MESSAGE);
-  }
-
+  // --- required fields -----------------------------------------------------
+  const companyNetwork = (formData.get("company_network") as string)?.trim();
   const title = (formData.get("title") as string)?.trim();
   const description = (formData.get("description") as string)?.trim();
   const roleSlug = formData.get("role_slug") as string;
+  const contactName = (formData.get("contact_name") as string)?.trim();
 
-  if (!title || !description || !roleSlug) {
-    fail("Title, description, and role are all required");
+  if (!companyNetwork) fail(NEW_JOB_PATH, "Company or network is required");
+  if (!title) fail(NEW_JOB_PATH, "Project title is required");
+  if (!roleSlug) fail(NEW_JOB_PATH, "Pick a role");
+  if (!description) fail(NEW_JOB_PATH, "Description is required");
+
+  // Contact info is required to POST; sharing it is the separate toggle below.
+  if (!contactName) fail(NEW_JOB_PATH, "A contact name is required to post");
+
+  const contactEmail = ((formData.get("contact_email") as string) ?? "").trim() || null;
+  const contactPhone = ((formData.get("contact_phone") as string) ?? "").trim() || null;
+
+  if (!contactEmail && !contactPhone) {
+    fail(NEW_JOB_PATH, "Add a contact email or phone — one is required to post");
   }
+
+  if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+    fail(NEW_JOB_PATH, "Enter a valid contact email");
+  }
+
+  const centroid = await lookupZip(supabase, formData.get("location_zip") as string);
+  if (!centroid) fail(NEW_JOB_PATH, INVALID_ZIP_MESSAGE);
 
   const rateRaw = (formData.get("rate") as string)?.trim();
   const rateCents = rateRaw ? Math.round(Number(rateRaw) * 100) : null;
-
   if (rateRaw && (!Number.isFinite(rateCents) || rateCents! < 0)) {
-    fail("Enter a valid rate");
+    fail(NEW_JOB_PATH, "Enter a valid rate");
   }
 
   const startDate = (formData.get("start_date") as string) || null;
   const endDate = (formData.get("end_date") as string) || null;
-
   if (startDate && endDate && endDate < startDate) {
-    fail("End date cannot be before the start date");
+    fail(NEW_JOB_PATH, "End date cannot be before the start date");
   }
 
-  const { error } = await supabase.from("jobs").insert({
-    employer_id: user.id,
-    role_slug: roleSlug,
+  // --- write ---------------------------------------------------------------
+  const { data: job, error: jobError } = await supabase
+    .from("jobs")
+    .insert({
+      employer_id: user.id,
+      role_slug: roleSlug,
+      company_network: companyNetwork,
+      description,
+      location_zip: centroid.zip,
+      location_lat: centroid.lat,
+      location_lng: centroid.lng,
+      travel_expected: formData.get("travel_expected") === "on",
+      start_date: startDate,
+      end_date: endDate,
+      rate_cents: rateCents,
+      rate_type: (formData.get("rate_type") as RateType) || "day",
+    })
+    .select("id")
+    .single();
+
+  if (jobError || !job) {
+    fail(NEW_JOB_PATH, jobError?.message ?? "Could not create the job");
+  }
+
+  // Title lives in its own table so the hide toggle is enforced by RLS rather
+  // than by this code. Same for contact info and its share toggle.
+  const { error: titleError } = await supabase.from("job_titles").insert({
+    job_id: job.id,
     title,
-    description,
-    location_zip: centroid.zip,
-    location_lat: centroid.lat,
-    location_lng: centroid.lng,
-    travel_expected: formData.get("travel_expected") === "on",
-    start_date: startDate,
-    end_date: endDate,
-    rate_cents: rateCents,
-    rate_type: (formData.get("rate_type") as RateType) || "day",
+    is_private: formData.get("title_private") === "on",
   });
 
-  if (error) {
-    fail(error.message);
+  if (titleError) {
+    // Roll back rather than leave a job with no title; the cascade takes the
+    // contact row with it if one exists.
+    await supabase.from("jobs").delete().eq("id", job.id);
+    fail(NEW_JOB_PATH, titleError.message);
+  }
+
+  const { error: contactError } = await supabase.from("job_contacts").insert({
+    job_id: job.id,
+    contact_name: contactName,
+    contact_email: contactEmail,
+    contact_phone: contactPhone,
+    share_with_applicants: formData.get("share_contact") === "on",
+  });
+
+  if (contactError) {
+    await supabase.from("jobs").delete().eq("id", job.id);
+    fail(NEW_JOB_PATH, contactError.message);
   }
 
   revalidatePath("/dashboard/employer");
   redirect("/dashboard/employer");
+}
+
+/**
+ * Hard delete. Ownership is enforced by the "employers delete their own jobs"
+ * RLS policy, not by this function: a non-owner's delete affects zero rows
+ * even if they reach this action directly. job_titles, job_contacts and
+ * applications all cascade via ON DELETE CASCADE.
+ */
+export async function deleteJob(formData: FormData) {
+  const jobId = formData.get("job_id") as string;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/sign-in");
+  }
+
+  if (!jobId) {
+    fail("/dashboard/employer", "Missing job");
+  }
+
+  const { data: deleted, error } = await supabase
+    .from("jobs")
+    .delete()
+    .eq("id", jobId)
+    .select("id");
+
+  if (error) {
+    fail("/dashboard/employer", error.message);
+  }
+
+  // RLS filtered it out — the caller does not own this job.
+  if (!deleted || deleted.length === 0) {
+    fail("/dashboard/employer", "That job could not be deleted");
+  }
+
+  revalidatePath("/dashboard/employer");
+  redirect("/dashboard/employer?deleted=1");
 }

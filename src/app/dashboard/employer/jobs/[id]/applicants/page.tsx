@@ -26,7 +26,7 @@ export default async function JobApplicantsPage({
   // explicitly here. job_applicants() enforces it a second time server-side.
   const { data: job } = await supabase
     .from("jobs")
-    .select("id, title, employer_id, role_slug, location_zip, status")
+    .select("id, company_network, employer_id, role_slug, location_zip, status")
     .eq("id", id)
     .maybeSingle();
 
@@ -72,6 +72,12 @@ export default async function JobApplicantsPage({
     rolesById.set(row.freelancer_id, list);
   }
 
+  const { data: titleRow } = await supabase
+    .from("job_titles")
+    .select("title")
+    .eq("job_id", id)
+    .maybeSingle();
+
   const jobRole = ROLE_BY_SLUG.get(job.role_slug);
 
   return (
@@ -80,7 +86,7 @@ export default async function JobApplicantsPage({
         title="Applicants"
         subtitle={
           <>
-            {job.title}
+            {titleRow?.title ?? job.company_network}
             {jobRole && <span className="text-gray-400"> · {jobRole.label}</span>}
           </>
         }
@@ -110,14 +116,17 @@ export default async function JobApplicantsPage({
 
               return (
                 <li key={applicant.application_id}>
+                  {/* 5.3 — the whole card is a link through to the full
+                      profile, where gated contact info appears. */}
+                  <Link
+                    href={`/freelancers/${applicant.freelancer_id}`}
+                    className="block rounded-lg transition-colors hover:bg-gray-50"
+                  >
                   <Card>
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <Link
-                        href={`/freelancers/${applicant.freelancer_id}`}
-                        className="font-medium hover:underline"
-                      >
+                      <span className="font-medium underline">
                         {applicant.full_name || "Freelancer"}
-                      </Link>
+                      </span>
                       <span className="text-sm text-gray-500">
                         {distance ?? "Remote role"}
                       </span>
@@ -169,15 +178,11 @@ export default async function JobApplicantsPage({
                       </p>
                     )}
 
-                    <p className="mt-3">
-                      <Link
-                        href={`/freelancers/${applicant.freelancer_id}`}
-                        className="text-sm underline"
-                      >
-                        View full profile
-                      </Link>
+                    <p className="mt-3 text-sm text-gray-500">
+                      View full profile &rarr;
                     </p>
                   </Card>
+                  </Link>
                 </li>
               );
             })}

@@ -113,7 +113,7 @@ export interface Database {
           id: string;
           employer_id: string;
           role_slug: string;
-          title: string;
+          company_network: string;
           description: string;
           location_zip: string;
           location_lat: number;
@@ -132,7 +132,7 @@ export interface Database {
         Insert: Partial<Database["public"]["Tables"]["jobs"]["Row"]> & {
           employer_id: string;
           role_slug: string;
-          title: string;
+          company_network: string;
           description: string;
           location_zip: string;
           location_lat: number;
@@ -167,6 +167,21 @@ export interface Database {
           profile_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["freelancer_contacts"]["Row"]>;
+        Relationships: [];
+      };
+      job_titles: {
+        Row: {
+          job_id: string;
+          title: string;
+          is_private: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["job_titles"]["Row"]> & {
+          job_id: string;
+          title: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["job_titles"]["Row"]>;
         Relationships: [];
       };
       job_contacts: {
@@ -231,7 +246,8 @@ export interface Database {
           employer_id: string;
           role_slug: string;
           role_category: RoleCategory;
-          title: string;
+          title: string | null;
+          company_network: string;
           description: string;
           location_zip: string;
           travel_expected: boolean;
