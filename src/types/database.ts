@@ -205,6 +205,7 @@ export interface Database {
           freelancer_id: string;
           status: ApplicationStatus;
           cover_note: string | null;
+          credits_html: string | null;
           created_at: string;
           updated_at: string;
         };
