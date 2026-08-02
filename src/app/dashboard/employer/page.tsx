@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { DeleteJobButton } from "@/components/delete-job-button";
 import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
+import { InviteSection } from "@/components/invite-section";
 
 export default async function EmployerDashboardPage() {
   const supabase = await createClient();
@@ -65,6 +66,12 @@ export default async function EmployerDashboardPage() {
         subtitle={user.email}
         action={<ButtonLink href="/dashboard/employer/profile">Edit profile</ButtonLink>}
       />
+
+      {/* 7.1 — referral is the main growth channel for a login-walled
+          product, so this sits above the fold, not in a footer. */}
+      <div className="mb-6">
+        <InviteSection userId={user.id} />
+      </div>
 
       <Card>
         <dl>

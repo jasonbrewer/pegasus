@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { signUp } from "@/app/auth/actions";
+import { parseInviteRef } from "@/lib/invite";
 
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; role?: string }>;
+  searchParams: Promise<{ error?: string; role?: string; ref?: string }>;
 }) {
   const params = await searchParams;
   const role = params.role === "employer" ? "employer" : "freelancer";
+  // Carried through signup and stored with the account. Nothing acts on it
+  // yet — referral tracking is a separate, later feature.
+  const invitedBy = parseInviteRef(params.ref);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
@@ -18,9 +22,15 @@ export default async function SignUpPage({
         </p>
       </div>
 
+      {invitedBy && (
+        <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
+          You were invited to Pegasus. Finish signing up to get in.
+        </p>
+      )}
+
       <div className="flex gap-2 text-sm">
         <Link
-          href="/sign-up?role=freelancer"
+          href={`/sign-up?role=freelancer${invitedBy ? `&ref=${invitedBy}` : ""}`}
           className={`flex-1 rounded-md border px-3 py-2 text-center ${
             role === "freelancer" ? "border-black font-medium" : "border-gray-300 text-gray-500"
           }`}
@@ -28,7 +38,7 @@ export default async function SignUpPage({
           I&apos;m a freelancer
         </Link>
         <Link
-          href="/sign-up?role=employer"
+          href={`/sign-up?role=employer${invitedBy ? `&ref=${invitedBy}` : ""}`}
           className={`flex-1 rounded-md border px-3 py-2 text-center ${
             role === "employer" ? "border-black font-medium" : "border-gray-300 text-gray-500"
           }`}
@@ -43,6 +53,7 @@ export default async function SignUpPage({
 
       <form action={signUp} className="flex flex-col gap-3">
         <input type="hidden" name="role" value={role} />
+        {invitedBy && <input type="hidden" name="invited_by" value={invitedBy} />}
 
         <label className="flex flex-col gap-1 text-sm">
           Full name

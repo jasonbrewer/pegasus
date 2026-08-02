@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageShell, PageHeader, Card, ButtonLink, DetailRow } from "@/components/ui";
+import { InviteSection } from "@/components/invite-section";
 
 export default async function FreelancerDashboardPage() {
   const supabase = await createClient();
@@ -54,6 +55,12 @@ export default async function FreelancerDashboardPage() {
           Your profile is incomplete — add your roles and a short bio so employers can find you.
         </p>
       )}
+
+      {/* 7.1 — referral is the main growth channel for a login-walled
+          product, so this sits above the fold, not in a footer. */}
+      <div className="mb-6">
+        <InviteSection userId={user.id} />
+      </div>
 
       <Card>
         <dl>
