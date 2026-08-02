@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
+import { signedAvatarUrl } from "@/lib/avatar";
+import { parseVideoUrl } from "@/lib/video";
 import {
   PageShell,
-  PageHeader,
   Badge,
   Card,
   DetailRow,
@@ -35,7 +36,9 @@ export default async function FreelancerProfilePage({
 
   const { data: freelancer } = await supabase
     .from("freelancer_profiles")
-    .select("profile_id, bio, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url")
+    .select(
+      "profile_id, bio, credits_html, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url"
+    )
     .eq("profile_id", id)
     .maybeSingle();
 
@@ -45,7 +48,7 @@ export default async function FreelancerProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, avatar_path")
     .eq("id", id)
     .maybeSingle();
 
@@ -61,6 +64,20 @@ export default async function FreelancerProfilePage({
     .select("role_slug")
     .eq("freelancer_id", id);
 
+  const { data: videoRows } = await supabase
+    .from("freelancer_videos")
+    .select("id, url")
+    .eq("freelancer_id", id)
+    .order("sort_order");
+
+  const avatarUrl = await signedAvatarUrl(supabase, profile?.avatar_path);
+
+  // The reel field and any extra video links render together.
+  const videos = [
+    ...(freelancer.reel_url ? [{ id: "reel", url: freelancer.reel_url }] : []),
+    ...(videoRows ?? []),
+  ].map((v) => ({ ...v, embed: parseVideoUrl(v.url) }));
+
   const roles = (roleRows ?? [])
     .map((r) => ROLE_BY_SLUG.get(r.role_slug))
     .filter((r) => r !== undefined);
@@ -70,11 +87,32 @@ export default async function FreelancerProfilePage({
 
   return (
     <PageShell>
-      <PageHeader
-        title={profile?.full_name ?? "Freelancer"}
-        subtitle={location}
-        action={isOwner ? <ButtonLink href="/dashboard/freelancer/profile">Edit profile</ButtonLink> : undefined}
-      />
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-4">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg text-gray-400"
+            >
+              {(profile?.full_name ?? "?").charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {profile?.full_name ?? "Freelancer"}
+            </h1>
+            {location && <p className="mt-1 text-sm text-gray-500">{location}</p>}
+          </div>
+        </div>
+        {isOwner && <ButtonLink href="/dashboard/freelancer/profile">Edit profile</ButtonLink>}
+      </div>
 
       <div className="flex flex-col gap-6">
         {roles.length > 0 && (
@@ -131,6 +169,58 @@ export default async function FreelancerProfilePage({
             />
           </dl>
         </Card>
+
+        {freelancer.credits_html && (
+          <section>
+            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-500">
+              Credits
+            </h2>
+            {/* Sanitized server-side on write (src/lib/sanitize.ts) — never
+                rendered straight from user input. */}
+            <div
+              className="text-sm leading-relaxed text-gray-700 [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
+              dangerouslySetInnerHTML={{ __html: freelancer.credits_html }}
+            />
+          </section>
+        )}
+
+        {videos.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-500">
+              Reel &amp; video
+            </h2>
+            <div className="flex flex-col gap-4">
+              {videos.map((video) =>
+                video.embed ? (
+                  <div
+                    key={video.id}
+                    className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200"
+                  >
+                    <iframe
+                      src={video.embed.embedUrl}
+                      title={`${video.embed.provider} video`}
+                      allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      className="h-full w-full"
+                    />
+                  </div>
+                ) : (
+                  <a
+                    key={video.id}
+                    href={video.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm underline"
+                  >
+                    {video.url}
+                  </a>
+                )
+              )}
+            </div>
+          </section>
+        )}
       </div>
     </PageShell>
   );

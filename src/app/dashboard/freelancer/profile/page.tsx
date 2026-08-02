@@ -12,7 +12,11 @@ import {
   ButtonLink,
   inputClass,
 } from "@/components/ui";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { signedAvatarUrl } from "@/lib/avatar";
 import { updateFreelancerProfile } from "./actions";
+
+const MAX_VIDEO_INPUTS = 6;
 
 export default async function EditFreelancerProfilePage({
   searchParams,
@@ -32,7 +36,7 @@ export default async function EditFreelancerProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role")
+    .select("full_name, role, avatar_path")
     .eq("id", user.id)
     .single();
 
@@ -43,7 +47,7 @@ export default async function EditFreelancerProfilePage({
 
   const { data: freelancer } = await supabase
     .from("freelancer_profiles")
-    .select("bio, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url")
+    .select("bio, credits_html, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url")
     .eq("profile_id", user.id)
     .single();
 
@@ -52,7 +56,17 @@ export default async function EditFreelancerProfilePage({
     .select("role_slug")
     .eq("freelancer_id", user.id);
 
+  const { data: videos } = await supabase
+    .from("freelancer_videos")
+    .select("url")
+    .eq("freelancer_id", user.id)
+    .order("sort_order");
+
   const selected = new Set((myRoles ?? []).map((r) => r.role_slug));
+
+  // Existing links plus one spare row, so adding another needs no JavaScript.
+  const videoValues = [...(videos ?? []).map((v) => v.url), ""].slice(0, MAX_VIDEO_INPUTS);
+  const avatarUrl = await signedAvatarUrl(supabase, profile?.avatar_path);
 
   return (
     <PageShell>
@@ -65,7 +79,37 @@ export default async function EditFreelancerProfilePage({
       <ErrorBanner message={params.error} />
       <SuccessBanner message={params.saved ? "Profile saved." : undefined} />
 
-      <form action={updateFreelancerProfile} className="flex flex-col gap-5">
+      <form
+        action={updateFreelancerProfile}
+        encType="multipart/form-data"
+        className="flex flex-col gap-5"
+      >
+        <Field
+          label="Profile photo"
+          hint="JPEG, PNG, or WebP, up to 5MB. Leave empty to keep your current photo."
+        >
+          <div className="flex items-center gap-3">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt="Your current profile photo"
+                className="h-14 w-14 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
+                None
+              </span>
+            )}
+            <input
+              type="file"
+              name="avatar"
+              accept="image/jpeg,image/png,image/webp"
+              className="text-sm file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm"
+            />
+          </div>
+        </Field>
+
         <Field label="Full name">
           <input
             name="full_name"
@@ -77,6 +121,17 @@ export default async function EditFreelancerProfilePage({
 
         <Field label="Short bio" hint="A couple of sentences on what you shoot and who you work with.">
           <textarea name="bio" rows={4} defaultValue={freelancer?.bio ?? ""} className={inputClass} />
+        </Field>
+
+        <Field
+          label="Credits"
+          hint="Paste your credits or resume straight from a document — formatting is kept."
+        >
+          <RichTextEditor
+            name="credits_html"
+            defaultValue={freelancer?.credits_html}
+            placeholder="Paste your credits here…"
+          />
         </Field>
 
         <Fieldset legend="Roles">
@@ -166,6 +221,25 @@ export default async function EditFreelancerProfilePage({
             className={inputClass}
           />
         </Field>
+
+        <Fieldset legend="Video links">
+          <p className="text-xs text-gray-500">
+            YouTube and Vimeo links play inline on your profile. Anything else shows as a link.
+            Clear a field to remove it.
+          </p>
+          <div className="mt-1 flex flex-col gap-2">
+            {videoValues.map((value, index) => (
+              <input
+                key={index}
+                name="video_urls"
+                type="url"
+                placeholder="https://vimeo.com/… or https://youtube.com/watch?v=…"
+                defaultValue={value}
+                className={inputClass}
+              />
+            ))}
+          </div>
+        </Fieldset>
 
         <div className="flex items-center gap-4 pt-1">
           <SubmitButton>Save profile</SubmitButton>

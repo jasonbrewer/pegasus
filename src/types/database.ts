@@ -17,7 +17,7 @@ export interface Database {
           id: string;
           role: AccountRole;
           full_name: string;
-          avatar_url: string | null;
+          avatar_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -45,6 +45,7 @@ export interface Database {
         Row: {
           profile_id: string;
           bio: string | null;
+          credits_html: string | null;
           day_rate_cents: number | null;
           home_zip: string;
           home_lat: number;
@@ -62,6 +63,21 @@ export interface Database {
           home_lng: number;
         };
         Update: Partial<Database["public"]["Tables"]["freelancer_profiles"]["Row"]>;
+        Relationships: [];
+      };
+      freelancer_videos: {
+        Row: {
+          id: string;
+          freelancer_id: string;
+          url: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["freelancer_videos"]["Row"]> & {
+          freelancer_id: string;
+          url: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["freelancer_videos"]["Row"]>;
         Relationships: [];
       };
       freelancer_roles: {
