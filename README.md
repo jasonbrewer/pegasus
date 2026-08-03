@@ -1,8 +1,13 @@
-# Pegasus
+# Production Circles
 
 A two-sided marketplace for hiring freelance video/production people, differentiated by a
 regional, local-first proximity match instead of a hard geographic wall. First launch market:
-Richmond, VA / Mid-Atlantic.
+Richmond, VA / Mid-Atlantic. Production domain: `productioncircles.com`.
+
+> **Naming.** "Production Circles" is the product's user-facing name. The internal
+> identifiers deliberately still read `pegasus` — the npm package name, the Supabase
+> `project_id`, the repo, and the Vercel project. Renaming those would break the build,
+> the deploy, and the Supabase connection for no user benefit, so they stay.
 
 - **Freelancers** create a profile and apply to jobs — always free, unlimited.
 - **Employers** post jobs — the paid side (Stripe is stubbed in v1, not wired up yet).
@@ -90,7 +95,12 @@ Fill in:
 NEXT_PUBLIC_SUPABASE_URL=       # Project Settings > API > Project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=  # Project Settings > API > anon public key
 SUPABASE_SERVICE_ROLE_KEY=      # Project Settings > API > service_role key (server-only, never expose)
+NEXT_PUBLIC_SITE_URL=           # https://productioncircles.com — the origin invite links are built from
 ```
+
+`NEXT_PUBLIC_SITE_URL` is optional locally: the invite widget falls back to the request's
+own headers. Set it in production so a shared invite link points at the real domain rather
+than whatever hostname the request happened to arrive on.
 
 `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` can stay blank — nothing calls Stripe yet.
 
@@ -142,8 +152,8 @@ proximity queries. Matching is soft, not a hard wall:
 
 ## Visibility: members-only
 
-Pegasus is login-gated. A signed-out visitor sees the landing page and the sign-in / sign-up
-pages, and nothing else — no profiles, no job listings.
+Production Circles is login-gated. A signed-out visitor sees the landing page and the
+sign-in / sign-up pages, and nothing else — no profiles, no job listings.
 
 This is enforced in two independent places, so neither one is a single point of failure:
 

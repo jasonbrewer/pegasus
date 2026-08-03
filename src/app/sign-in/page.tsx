@@ -15,7 +15,7 @@ export default async function SignInPage({
 
       {next && (
         <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-secondary">
-          Sign in to continue — Pegasus profiles and jobs are members-only.
+          Sign in to continue — Production Circles profiles and jobs are members-only.
         </p>
       )}
 
