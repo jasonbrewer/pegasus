@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { ROLES } from "@/lib/roles";
-import { sanitizeCredits, MAX_CREDITS_LENGTH } from "@/lib/sanitize";
+import { prepareCredits } from "@/lib/sanitize";
 import { isHttpUrl } from "@/lib/video";
 import {
   AVATAR_BUCKET,
@@ -81,12 +81,13 @@ export async function updateFreelancerProfile(formData: FormData) {
   }
 
   // 3.3 — credits are sanitized here, before storage, because the profile
-  // page renders them as raw HTML.
-  const rawCredits = (formData.get("credits_html") as string) ?? "";
-  if (rawCredits.length > MAX_CREDITS_LENGTH) {
-    fail("Your credits are too long — please trim them down");
+  // page renders them as raw HTML. prepareCredits sanitizes first and measures
+  // the result, so pasted markup is gone before anything is counted.
+  const credits = prepareCredits(formData.get("credits_html") as string);
+  if (!credits.ok) {
+    fail(credits.error);
   }
-  const creditsHtml = sanitizeCredits(rawCredits);
+  const creditsHtml = credits.html;
 
   // 3.1 — avatar upload. Optional: an empty file input means "leave as is".
   const avatarFile = formData.get("avatar") as File | null;

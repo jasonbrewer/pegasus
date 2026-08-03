@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { sanitizeCredits, MAX_CREDITS_LENGTH } from "@/lib/sanitize";
+import { prepareCredits } from "@/lib/sanitize";
 
 /** Postgres unique_violation — the (job_id, freelancer_id) constraint. */
 const UNIQUE_VIOLATION = "23505";
@@ -85,15 +85,17 @@ export async function applyToJob(formData: FormData) {
     redirect(withParam(returnTo, "error", "Your message is too long — please shorten it"));
   }
 
-  const rawCredits = (formData.get("credits_html") as string) ?? "";
+  // Sanitized before storage: the employer's applicant view renders this as
+  // HTML, and anything can post to this action directly. The length limit is
+  // measured on the sanitized result, so pasted formatting doesn't count
+  // against the applicant.
+  const credits = prepareCredits(formData.get("credits_html") as string);
 
-  if (rawCredits.length > MAX_CREDITS_LENGTH) {
-    redirect(withParam(returnTo, "error", "Your credits are too long — please trim them down"));
+  if (!credits.ok) {
+    redirect(withParam(returnTo, "error", credits.error));
   }
 
-  // Sanitized before storage: the employer's applicant view renders this as
-  // HTML, and anything can post to this action directly.
-  const creditsHtml = sanitizeCredits(rawCredits);
+  const creditsHtml = credits.html;
 
   const { error } = await supabase.from("applications").insert({
     job_id: jobId,
