@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { formatDistance } from "@/lib/format";
-import { PageShell, PageHeader, Badge, Card } from "@/components/ui";
+import { PageShell, PageHeader } from "@/components/ui";
+import { ApplicantCard, type ApplicantCardData } from "@/components/applicant-card";
 
 export default async function JobApplicantsPage({
   params,
@@ -49,20 +49,34 @@ export default async function JobApplicantsPage({
   await supabase.rpc("mark_applicants_viewed", { p_job_id: id });
 
   // Ranked by distance from the job, remote roles last. Security-definer, and
-  // internally filtered to jobs owned by auth.uid().
+  // internally filtered to jobs owned by auth.uid(). 2.3 — it also drops
+  // withdrawn applications, so they stay off this page.
   const { data: applicants, error } = await supabase.rpc("job_applicants", { p_job_id: id });
 
   const ids = [...new Set((applicants ?? []).map((a) => a.freelancer_id))];
 
+  // reel_url and portfolio_url join the existing home_zip lookup: 5.1 puts the
+  // reel on the card and the portfolio in the footer actions.
   const { data: freelancers } = ids.length
     ? await supabase
         .from("freelancer_profiles")
-        .select("profile_id, home_zip")
+        .select("profile_id, home_zip, reel_url, portfolio_url")
         .in("profile_id", ids)
     : { data: [] };
 
   const { data: roleRows } = ids.length
     ? await supabase.from("freelancer_roles").select("freelancer_id, role_slug").in("freelancer_id", ids)
+    : { data: [] };
+
+  // Not filtered here, deliberately. The freelancer_contacts SELECT policy
+  // already says "the seeker, or an employer they applied to" — which is this
+  // employer, for exactly these freelancers. Re-stating the rule in TypeScript
+  // is how the two versions of it start to drift.
+  const { data: contactRows } = ids.length
+    ? await supabase
+        .from("freelancer_contacts")
+        .select("profile_id, phone, contact_email")
+        .in("profile_id", ids)
     : { data: [] };
 
   const zips = [...new Set((freelancers ?? []).map((f) => f.home_zip))];
@@ -74,11 +88,14 @@ export default async function JobApplicantsPage({
     (places ?? []).map((p) => [p.zip, [p.city, p.state].filter(Boolean).join(", ")])
   );
   const freelancerById = new Map((freelancers ?? []).map((f) => [f.profile_id, f]));
+  const contactById = new Map((contactRows ?? []).map((c) => [c.profile_id, c]));
 
   const rolesById = new Map<string, string[]>();
   for (const row of roleRows ?? []) {
+    const label = ROLE_BY_SLUG.get(row.role_slug)?.label;
+    if (!label) continue;
     const list = rolesById.get(row.freelancer_id) ?? [];
-    list.push(row.role_slug);
+    list.push(label);
     rolesById.set(row.freelancer_id, list);
   }
 
@@ -89,6 +106,25 @@ export default async function JobApplicantsPage({
     .maybeSingle();
 
   const jobRole = ROLE_BY_SLUG.get(job.role_slug);
+
+  const cards: ApplicantCardData[] = (applicants ?? []).map((applicant) => {
+    const freelancer = freelancerById.get(applicant.freelancer_id);
+    const contact = contactById.get(applicant.freelancer_id);
+
+    return {
+      applicationId: applicant.application_id,
+      freelancerId: applicant.freelancer_id,
+      name: applicant.full_name,
+      location: freelancer ? (placeByZip.get(freelancer.home_zip) ?? null) : null,
+      distance: formatDistance(applicant.distance_miles),
+      roles: rolesById.get(applicant.freelancer_id) ?? [],
+      message: applicant.cover_note,
+      reelUrl: freelancer?.reel_url ?? null,
+      portfolioUrl: freelancer?.portfolio_url ?? null,
+      phone: contact?.phone ?? null,
+      email: contact?.contact_email ?? null,
+    };
+  });
 
   return (
     <PageShell>
@@ -106,94 +142,22 @@ export default async function JobApplicantsPage({
         <p className="mb-5 rounded-md bg-danger px-3 py-2 text-sm text-danger-ink">{error.message}</p>
       )}
 
-      {!applicants || applicants.length === 0 ? (
+      {cards.length === 0 ? (
         <p className="text-sm text-muted">No applications yet.</p>
       ) : (
         <>
           <p className="mb-3 text-xs text-muted">
-            {applicants.length} {applicants.length === 1 ? "applicant" : "applicants"}, closest
-            first
+            {cards.length} {cards.length === 1 ? "applicant" : "applicants"}, closest first ·
+            star a card to triage it
           </p>
 
           {/* job_applicants() already orders by distance; do not re-sort. */}
-          <ul className="flex flex-col gap-3">
-            {applicants.map((applicant) => {
-              const freelancer = freelancerById.get(applicant.freelancer_id);
-              const place = freelancer ? placeByZip.get(freelancer.home_zip) : null;
-              const roleSlugs = rolesById.get(applicant.freelancer_id) ?? [];
-              const distance = formatDistance(applicant.distance_miles);
-
-              return (
-                <li key={applicant.application_id}>
-                  {/* 5.3 — the whole card is a link through to the full
-                      profile, where gated contact info appears. */}
-                  <Link
-                    href={`/freelancers/${applicant.freelancer_id}`}
-                    className="group block rounded-lg"
-                  >
-                  <Card interactive>
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <span className="font-medium underline">
-                        {applicant.full_name || "Freelancer"}
-                      </span>
-                      <span className="text-sm text-muted">
-                        {distance ?? "Remote role"}
-                      </span>
-                    </div>
-
-                    <p className="mt-0.5 text-sm text-secondary">
-                      {place ?? "Location not set"}
-                    </p>
-
-                    {roleSlugs.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {roleSlugs.map((slug) => {
-                          const role = ROLE_BY_SLUG.get(slug);
-                          return role ? <Badge key={slug}>{role.label}</Badge> : null;
-                        })}
-                      </div>
-                    )}
-
-                    {applicant.cover_note && (
-                      <div className="mt-3">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
-                          Message
-                        </p>
-                        {/* Plain text — rendered as text, never as HTML. */}
-                        <p className="whitespace-pre-line text-sm leading-relaxed text-secondary">
-                          {applicant.cover_note}
-                        </p>
-                      </div>
-                    )}
-
-                    {applicant.credits_html && (
-                      <div className="mt-3">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
-                          Credits or résumé
-                        </p>
-                        {/* Sanitized server-side at apply time (src/lib/sanitize.ts).
-                            Never rendered straight from user input. */}
-                        <div
-                          className="text-sm leading-relaxed text-secondary [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
-                          dangerouslySetInnerHTML={{ __html: applicant.credits_html }}
-                        />
-                      </div>
-                    )}
-
-                    {!applicant.cover_note && !applicant.credits_html && (
-                      <p className="mt-3 text-sm text-muted">
-                        No message sent with this application.
-                      </p>
-                    )}
-
-                    <p className="mt-3 text-sm text-muted">
-                      View full profile &rarr;
-                    </p>
-                  </Card>
-                  </Link>
-                </li>
-              );
-            })}
+          <ul className="flex flex-col gap-4">
+            {cards.map((applicant) => (
+              <li key={applicant.applicationId}>
+                <ApplicantCard applicant={applicant} jobId={job.id} />
+              </li>
+            ))}
           </ul>
         </>
       )}
