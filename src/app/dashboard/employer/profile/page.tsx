@@ -39,12 +39,17 @@ export default async function EditEmployerProfilePage({
     redirect("/dashboard/freelancer/profile");
   }
 
-  const [{ data: employer }, { data: billing }] = await Promise.all([
+  const [{ data: employer }, { data: contact }, { data: billing }] = await Promise.all([
     supabase
       .from("employer_profiles")
       .select("company_name, home_zip, description, website")
       .eq("profile_id", user.id)
       .single(),
+    supabase
+      .from("employer_contacts")
+      .select("contact_phone, contact_email, linkedin_url")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
     supabase
       .from("employer_billing")
       .select("billing_email")
@@ -73,7 +78,13 @@ export default async function EditEmployerProfilePage({
           />
         </Field>
 
-        <Field label="Your name" hint="The person freelancers will be dealing with.">
+        {/* 4.1 — the contact NAME, reusing profiles.full_name rather than
+            adding a second name field. This is the same value the dashboard
+            shows as "Hiring contact". */}
+        <Field
+          label="Contact name"
+          hint="The person a freelancer would be dealing with. Shown on your dashboard as your hiring contact."
+        >
           <input
             name="full_name"
             required
@@ -110,9 +121,45 @@ export default async function EditEmployerProfilePage({
           />
         </Field>
 
+        {/* 4.1 — required. Kept in employer_contacts, an owner-only table, so
+            adding a phone number does not publish it to every member. */}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Contact email" hint="Required. Private to you and the moderator.">
+            <input
+              name="contact_email"
+              type="email"
+              required
+              placeholder="you@company.com"
+              defaultValue={contact?.contact_email ?? ""}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Contact phone" hint="Required. Private to you and the moderator.">
+            <input
+              name="contact_phone"
+              type="tel"
+              required
+              defaultValue={contact?.contact_phone ?? ""}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+
+        {/* 4.2 — optional. */}
+        <Field label="LinkedIn" hint="Optional. Your company page or your own profile.">
+          <input
+            name="linkedin_url"
+            type="url"
+            placeholder="https://linkedin.com/company/…"
+            defaultValue={contact?.linkedin_url ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
         <Field
           label="Billing email"
-          hint="Private to you. Used for billing when employer payments switch on — it is never shown to freelancers."
+          hint="Optional. Leave blank to use your contact email. Only used when employer payments switch on — never shown to freelancers."
         >
           <input
             name="billing_email"

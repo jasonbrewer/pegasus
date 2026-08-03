@@ -1,5 +1,5 @@
 -- Read-only audit: does the live database actually contain everything
--- migrations 20260801000004 .. 20260801000012 claim to create?
+-- migrations 20260801000004 .. 20260801000013 claim to create?
 --
 -- Run it in the Supabase SQL editor. It writes nothing and returns one row per
 -- expected object, MISSING rows first.
@@ -49,7 +49,10 @@ begin
     ('000010','profiles','is_admin'),
     ('000010','profiles','invited_by'),
     ('000011','applications','withdrawn_at'),
-    ('000012','profiles','approved_at')
+    ('000012','profiles','approved_at'),
+    ('000013','employer_contacts','contact_phone'),
+    ('000013','employer_contacts','contact_email'),
+    ('000013','employer_contacts','linkedin_url')
   ) as m(migration, tbl, col);
 
   -- ---- columns that must be GONE ------------------------------------------
@@ -76,7 +79,8 @@ begin
     ('000004','employer_billing'),
     ('000005','freelancer_videos'),
     ('000008','job_titles'),
-    ('000009','saved_jobs')
+    ('000009','saved_jobs'),
+    ('000013','employer_contacts')
   ) as m(migration, tbl);
 
   -- ---- RLS enabled ---------------------------------------------------------
@@ -93,7 +97,8 @@ begin
     ('000004','employer_billing'),
     ('000005','freelancer_videos'),
     ('000008','job_titles'),
-    ('000009','saved_jobs')
+    ('000009','saved_jobs'),
+    ('000013','employer_contacts')
   ) as m(migration, tbl);
 
   -- ---- policies ------------------------------------------------------------
@@ -135,7 +140,10 @@ begin
     ('000010','jobs','participating employers create jobs for themselves'),
     ('000010','job_titles','job titles are readable when the job is, unless hidden'),
     ('000010','applications','participating freelancers apply to jobs'),
-    ('000011','applications','freelancers withdraw their own applications')
+    ('000011','applications','freelancers withdraw their own applications'),
+    ('000013','employer_contacts','employer contacts are owner-only'),
+    ('000013','employer_contacts','employers insert their own contact row'),
+    ('000013','employer_contacts','employers update their own contact row')
   ) as m(migration, tbl, pol);
 
   -- ---- policies that must be GONE -----------------------------------------
@@ -191,7 +199,10 @@ begin
     ('000008','authenticated','job_titles','DELETE'),
     ('000009','authenticated','saved_jobs','SELECT'),
     ('000009','authenticated','saved_jobs','INSERT'),
-    ('000009','authenticated','saved_jobs','DELETE')
+    ('000009','authenticated','saved_jobs','DELETE'),
+    ('000013','authenticated','employer_contacts','SELECT'),
+    ('000013','authenticated','employer_contacts','INSERT'),
+    ('000013','authenticated','employer_contacts','UPDATE')
   ) as m(migration, role_name, tbl, priv);
 
   -- saved_jobs is deliberately UPDATE-less: the table has no mutable
@@ -281,6 +292,77 @@ begin
               then 'ok' else 'MISSING' end
   from (values ('freelancer_contacts'), ('employer_billing')) as m(needle);
 
+  -- ---- 000013: employer contact info --------------------------------------
+  -- Additive by design. A NOT NULL here would lock an employer who predates
+  -- the migration out of saving their own profile.
+  insert into migration_audit
+  select '000013', 'column nullable', 'employer_contacts.' || m.col,
+         case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
+              when exists (
+                select 1 from pg_attribute
+                where attrelid = 'public.employer_contacts'::regclass
+                  and attname = m.col and not attisdropped and attnotnull
+              ) then 'MISSING (NOT NULL — not additive)' else 'ok' end
+  from (values ('contact_phone'), ('contact_email'), ('linkedin_url')) as m(col);
+
+  -- The privacy claim, checked against the catalogue rather than trusted:
+  -- every policy on the table pins the row to its owner, and there are
+  -- exactly three of them. A stray permissive policy would publish employer
+  -- phone numbers to the whole membership.
+  insert into migration_audit
+  select '000013', 'policy owner-only', 'employer_contacts :: all policies name auth.uid()',
+         case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
+              when exists (
+                select 1 from pg_policies
+                where schemaname = 'public' and tablename = 'employer_contacts'
+                  and coalesce(qual,'') || coalesce(with_check,'') not like '%auth.uid()%'
+              ) then 'MISSING (a policy is not owner-scoped)' else 'ok' end;
+
+  insert into migration_audit
+  select '000013', 'policy count', 'employer_contacts :: exactly 3',
+         case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
+              when (select count(*) from pg_policies
+                    where schemaname = 'public' and tablename = 'employer_contacts') = 3
+              then 'ok' else 'MISSING (unexpected policy count — an extra one may be permissive)' end;
+
+  -- No DELETE: there is no policy or grant for it, so a contact row cannot be
+  -- orphaned away from the employer_profiles row it hangs off.
+  insert into migration_audit
+  select '000013', 'grant absent', 'authenticated -> employer_contacts DELETE',
+         case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
+              when has_table_privilege('authenticated', 'public.employer_contacts', 'DELETE')
+                then 'MISSING (DELETE granted but never intended)' else 'ok' end;
+
+  insert into migration_audit
+  select '000013', 'grant absent', 'anon -> employer_contacts SELECT',
+         case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
+              when has_table_privilege('anon', 'public.employer_contacts', 'SELECT')
+                then 'MISSING (logged-out visitors can read contact info)' else 'ok' end;
+
+  insert into migration_audit
+  select '000013', 'function body', 'handle_new_user -> seeds employer_contacts',
+         case when to_regprocedure('public.handle_new_user()') is null then 'MISSING (no function)'
+              when pg_get_functiondef(to_regprocedure('public.handle_new_user()')) like '%employer_contacts%'
+              then 'ok' else 'MISSING' end;
+
+  -- Employers stay auto-approved. Batch 4 must not have introduced a gate.
+  insert into migration_audit
+  select '000013', 'function body', 'handle_new_user -> employers still auto-approved',
+         case when to_regprocedure('public.handle_new_user()') is null then 'MISSING (no function)'
+              when pg_get_functiondef(to_regprocedure('public.handle_new_user()'))
+                   like '%when signup_role = ''employer'' then ''approved''%'
+              then 'ok' else 'MISSING (employer approval gate introduced)' end;
+
+  -- Backfill landed: nobody opens the profile form to a blank Contact card.
+  insert into migration_audit
+  select '000013', 'backfill', 'every employer_profiles row has a contact row',
+         case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
+              when exists (
+                select 1 from public.employer_profiles ep
+                left join public.employer_contacts ec on ec.profile_id = ep.profile_id
+                where ec.profile_id is null
+              ) then 'MISSING (employers without a contact row)' else 'ok' end;
+
   insert into migration_audit
   select '000012', 'function body', 'admin_set_account_status -> records approved_at',
          case when to_regprocedure('public.admin_set_account_status(uuid, public.account_status)') is null
@@ -337,7 +419,8 @@ begin
          ) then 'ok' else 'MISSING' end
   from (values
     ('000004','employer_profiles','employer_profiles_resolve_zip'),
-    ('000008','job_titles','job_titles_set_updated_at')
+    ('000008','job_titles','job_titles_set_updated_at'),
+    ('000013','employer_contacts','employer_contacts_set_updated_at')
   ) as m(migration, tbl, trg);
 
   -- ---- seed data -----------------------------------------------------------
