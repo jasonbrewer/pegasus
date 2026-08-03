@@ -90,7 +90,7 @@ export default async function AdminAccountPage({
         subtitle={
           <>
             {account.role}
-            {account.is_admin && <span className="text-gray-400"> · admin</span>}
+            {account.is_admin && <span className="text-muted"> · admin</span>}
           </>
         }
         action={<ButtonLink href="/admin">Back to moderation</ButtonLink>}
@@ -205,20 +205,20 @@ export default async function AdminAccountPage({
       )}
 
       {isFreelancer && freelancer?.bio && (
-        <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-gray-700">
+        <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-secondary">
           {freelancer.bio}
         </p>
       )}
 
       {!isFreelancer && employer?.description && (
-        <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-gray-700">
+        <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-secondary">
           {employer.description}
         </p>
       )}
 
       {!isFreelancer && (jobs ?? []).length > 0 && (
         <>
-          <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+          <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-muted">
             Postings
           </h2>
           <ul className="flex flex-col gap-3">

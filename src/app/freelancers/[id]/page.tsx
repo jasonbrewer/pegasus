@@ -112,7 +112,7 @@ export default async function FreelancerProfilePage({
           ) : (
             <span
               aria-hidden="true"
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg text-gray-400"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-surface-muted text-lg text-muted"
             >
               {(profile?.full_name ?? "?").charAt(0).toUpperCase()}
             </span>
@@ -121,7 +121,7 @@ export default async function FreelancerProfilePage({
             <h1 className="text-2xl font-semibold tracking-tight">
               {profile?.full_name ?? "Freelancer"}
             </h1>
-            {location && <p className="mt-1 text-sm text-gray-500">{location}</p>}
+            {location && <p className="mt-1 text-sm text-muted">{location}</p>}
           </div>
         </div>
         {isOwner && <ButtonLink href="/dashboard/freelancer/profile">Edit profile</ButtonLink>}
@@ -137,7 +137,7 @@ export default async function FreelancerProfilePage({
         )}
 
         {freelancer.bio && (
-          <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-secondary">
             {freelancer.bio}
           </p>
         )}
@@ -186,10 +186,10 @@ export default async function FreelancerProfilePage({
         {hasContact && (
           <Card>
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
                 Contact
               </h2>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted">
                 {isOwner
                   ? "Private — shared with an employer only when you apply to their job"
                   : "Shared with you because they applied to one of your jobs"}
@@ -221,7 +221,7 @@ export default async function FreelancerProfilePage({
         )}
 
         {isOwner && !hasContact && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             You haven&apos;t added contact details yet. Employers see them only after you apply
             to one of their jobs.
           </p>
@@ -229,13 +229,13 @@ export default async function FreelancerProfilePage({
 
         {freelancer.credits_html && (
           <section>
-            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-500">
+            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-muted">
               Credits
             </h2>
             {/* Sanitized server-side on write (src/lib/sanitize.ts) — never
                 rendered straight from user input. */}
             <div
-              className="text-sm leading-relaxed text-gray-700 [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
+              className="text-sm leading-relaxed text-secondary [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
               dangerouslySetInnerHTML={{ __html: freelancer.credits_html }}
             />
           </section>
@@ -243,7 +243,7 @@ export default async function FreelancerProfilePage({
 
         {videos.length > 0 && (
           <section>
-            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-500">
+            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-muted">
               Reel &amp; video
             </h2>
             <div className="flex flex-col gap-4">
@@ -251,7 +251,7 @@ export default async function FreelancerProfilePage({
                 video.embed ? (
                   <div
                     key={video.id}
-                    className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200"
+                    className="aspect-video w-full overflow-hidden rounded-lg border border-line"
                   >
                     <iframe
                       src={video.embed.embedUrl}

@@ -30,7 +30,7 @@ export function InviteLink({ url }: { url: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover"
       >
         Invite a friend
       </button>
@@ -39,7 +39,7 @@ export function InviteLink({ url }: { url: string }) {
 
   return (
     <div className="w-full">
-      <p className="mb-2 text-sm text-gray-600">
+      <p className="mb-2 text-sm text-secondary">
         Share this link. It&apos;s yours — anyone who signs up through it is recorded as your
         invite.
       </p>
@@ -49,12 +49,12 @@ export function InviteLink({ url }: { url: string }) {
           value={url}
           onFocus={(event) => event.currentTarget.select()}
           aria-label="Your personal invite link"
-          className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 font-mono text-xs"
+          className="min-w-0 flex-1 rounded-md border border-field px-3 py-2 font-mono text-xs"
         />
         <button
           type="button"
           onClick={copy}
-          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover"
         >
           {copied ? "Copied" : "Copy"}
         </button>

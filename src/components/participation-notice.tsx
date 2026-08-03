@@ -17,8 +17,8 @@ export function ParticipationNotice({
 
   const blocked = viewer?.status === "blocked";
   const tone = blocked
-    ? "border-red-200 bg-red-50 text-red-900"
-    : "border-amber-200 bg-amber-50 text-amber-900";
+    ? "border-danger-edge bg-danger text-danger-ink"
+    : "border-notice-edge bg-notice text-notice-ink";
 
   return (
     <div className={`mb-6 rounded-lg border px-4 py-3 ${tone}`}>

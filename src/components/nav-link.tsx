@@ -19,8 +19,8 @@ export function NavLink({ href, children }: { href: string; children: React.Reac
       aria-current={isActive ? "page" : undefined}
       className={
         isActive
-          ? "whitespace-nowrap border-b-2 border-black pb-0.5 text-sm font-medium text-black"
-          : "whitespace-nowrap border-b-2 border-transparent pb-0.5 text-sm text-gray-500 hover:text-black"
+          ? "whitespace-nowrap border-b-2 border-accent pb-0.5 text-sm font-medium text-content"
+          : "whitespace-nowrap border-b-2 border-transparent pb-0.5 text-sm text-muted hover:text-content"
       }
     >
       {children}

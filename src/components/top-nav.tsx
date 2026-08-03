@@ -53,7 +53,7 @@ export async function TopNav() {
       : links;
 
   return (
-    <header className="border-b border-gray-200">
+    <header className="border-b border-line">
       <nav className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
         <Link href={user ? "/dashboard" : "/"} className="text-sm font-semibold tracking-tight">
           Pegasus
@@ -77,19 +77,19 @@ export async function TopNav() {
             <form action={signOut}>
               <button
                 type="submit"
-                className="whitespace-nowrap rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+                className="whitespace-nowrap rounded-md border border-field px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
               >
                 Log out
               </button>
             </form>
           ) : (
             <>
-              <Link href="/sign-in" className="whitespace-nowrap text-sm text-gray-500 hover:text-black">
+              <Link href="/sign-in" className="whitespace-nowrap text-sm text-muted hover:text-content">
                 Sign in
               </Link>
               <Link
                 href="/sign-up"
-                className="whitespace-nowrap rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                className="whitespace-nowrap rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-accent-hover"
               >
                 Sign up
               </Link>

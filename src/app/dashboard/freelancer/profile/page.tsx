@@ -103,7 +103,7 @@ export default async function EditFreelancerProfilePage({
                 className="h-14 w-14 shrink-0 rounded-full object-cover"
               />
             ) : (
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-muted text-xs text-muted">
                 None
               </span>
             )}
@@ -111,7 +111,7 @@ export default async function EditFreelancerProfilePage({
               type="file"
               name="avatar"
               accept="image/jpeg,image/png,image/webp"
-              className="text-sm file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-3 file:py-1.5 file:text-sm"
+              className="text-sm file:mr-3 file:rounded-md file:border file:border-field file:bg-surface file:px-3 file:py-1.5 file:text-sm"
             />
           </div>
         </Field>
@@ -141,14 +141,14 @@ export default async function EditFreelancerProfilePage({
         </Field>
 
         <Fieldset legend="Roles">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Pick everything you take work for. Remote roles aren&apos;t distance-filtered, so
             they surface to employers nationwide.
           </p>
           <div className="mt-1 flex flex-col gap-4">
             {ROLES_BY_GROUP.map(({ group, roles }) => (
               <div key={group}>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
                   {group}
                 </p>
                 <div className="grid gap-1.5 sm:grid-cols-2">
@@ -171,7 +171,7 @@ export default async function EditFreelancerProfilePage({
         </Fieldset>
 
         <Fieldset legend="Contact details">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Private. Only you can see these — an employer sees them once you apply to one of
             their jobs, and never from browsing profiles.
           </p>
@@ -258,7 +258,7 @@ export default async function EditFreelancerProfilePage({
         </Field>
 
         <Fieldset legend="Video links">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             YouTube and Vimeo links play inline on your profile. Anything else shows as a link.
             Clear a field to remove it.
           </p>

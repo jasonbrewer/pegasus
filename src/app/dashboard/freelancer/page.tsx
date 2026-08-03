@@ -98,13 +98,13 @@ export default async function FreelancerDashboardPage() {
               {title}
             </Link>
           ) : (
-            <span className="font-medium text-gray-500">{title}</span>
+            <span className="font-medium text-muted">{title}</span>
           )}
           {meta}
         </div>
-        <p className="mt-0.5 text-sm text-gray-500">
+        <p className="mt-0.5 text-sm text-muted">
           {job ? job.company_network : "This posting is no longer listed"}
-          {role && <span className="text-gray-400"> · {role.label}</span>}
+          {role && <span className="text-muted"> · {role.label}</span>}
         </p>
       </Card>
     );
@@ -123,7 +123,7 @@ export default async function FreelancerDashboardPage() {
       <ParticipationNotice viewer={profile} />
 
       {needsSetup && (
-        <p className="mb-6 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mb-6 rounded-md bg-notice px-3 py-2 text-sm text-notice-ink">
           Your profile is incomplete — add your roles and a short bio so employers can find you.
         </p>
       )}
@@ -156,11 +156,11 @@ export default async function FreelancerDashboardPage() {
       {/* 8.1 — My applications. Two statuses, and neither is set by hand:
           "Applied" is the row existing, "Viewed" is the employer having
           opened their applicant view. */}
-      <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+      <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-muted">
         My applications
       </h2>
       {!applications || applications.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           You haven&apos;t applied to anything yet.{" "}
           <Link href="/jobs" className="underline">
             Browse jobs
@@ -175,7 +175,7 @@ export default async function FreelancerDashboardPage() {
                 jobId={application.job_id}
                 meta={
                   <span className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted">
                       {formatTimestamp(application.created_at)}
                     </span>
                     <Badge>{application.first_viewed_at ? "Viewed" : "Applied"}</Badge>
@@ -189,11 +189,11 @@ export default async function FreelancerDashboardPage() {
 
       {/* 8.2 — Saved jobs. Private to this account: the employer cannot see
           that their posting was saved. */}
-      <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+      <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-muted">
         Saved jobs
       </h2>
       {!saves || saves.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Nothing saved yet — open a posting and hit Save to keep it here.
         </p>
       ) : (
@@ -203,7 +203,7 @@ export default async function FreelancerDashboardPage() {
               <JobLine
                 jobId={save.job_id}
                 meta={
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted">
                     Saved {formatTimestamp(save.created_at)}
                   </span>
                 }
@@ -216,7 +216,7 @@ export default async function FreelancerDashboardPage() {
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Link
           href="/jobs"
-          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover"
         >
           Browse jobs
         </Link>

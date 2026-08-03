@@ -14,20 +14,20 @@ export default async function SignInPage({
       <h1 className="text-2xl font-semibold">Sign in</h1>
 
       {next && (
-        <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
+        <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-secondary">
           Sign in to continue — Pegasus profiles and jobs are members-only.
         </p>
       )}
 
       {params.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
+        <p className="rounded-md bg-danger px-3 py-2 text-sm text-danger-ink">{params.error}</p>
       )}
 
       <form action={signIn} className="flex flex-col gap-3">
         {next && <input type="hidden" name="next" value={next} />}
         <label className="flex flex-col gap-1 text-sm">
           Email
-          <input type="email" name="email" required className="rounded-md border border-gray-300 px-3 py-2" />
+          <input type="email" name="email" required className="rounded-md border border-field px-3 py-2" />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
@@ -36,16 +36,16 @@ export default async function SignInPage({
             type="password"
             name="password"
             required
-            className="rounded-md border border-gray-300 px-3 py-2"
+            className="rounded-md border border-field px-3 py-2"
           />
         </label>
 
-        <button type="submit" className="mt-2 rounded-md bg-black px-3 py-2 text-sm font-medium text-white">
+        <button type="submit" className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink">
           Sign in
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-muted">
         Don&apos;t have an account?{" "}
         <Link href="/sign-up" className="underline">
           Sign up

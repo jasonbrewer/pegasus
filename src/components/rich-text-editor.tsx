@@ -102,7 +102,7 @@ export function RichTextEditor({
             type="button"
             title={item.title}
             onClick={() => run(item.command)}
-            className="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
+            className="rounded border border-field px-2 py-1 text-xs hover:bg-surface-muted"
           >
             {item.label}
           </button>
@@ -111,7 +111,7 @@ export function RichTextEditor({
 
       <div className="relative">
         {isEmpty && placeholder && (
-          <p className="pointer-events-none absolute left-3 top-2 text-sm text-gray-400">
+          <p className="pointer-events-none absolute left-3 top-2 text-sm text-muted">
             {placeholder}
           </p>
         )}
@@ -125,7 +125,7 @@ export function RichTextEditor({
           onInput={sync}
           onBlur={sync}
           onPaste={onPaste}
-          className="prose-sm min-h-40 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-900 [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc"
+          className="prose-sm min-h-40 w-full rounded-md border border-field px-3 py-2 text-sm outline-none focus:border-strong [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc"
         />
       </div>
 
@@ -134,7 +134,7 @@ export function RichTextEditor({
       {length > 0 && (
         <p
           className={`mt-1 text-xs ${
-            length > MAX_CREDITS_LENGTH ? "text-red-600" : "text-gray-400"
+            length > MAX_CREDITS_LENGTH ? "text-danger-ink" : "text-muted"
           }`}
         >
           {length.toLocaleString("en-US")} / {MAX_CREDITS_LENGTH.toLocaleString("en-US")}{" "}

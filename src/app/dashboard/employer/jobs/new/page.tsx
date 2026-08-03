@@ -82,7 +82,7 @@ export default async function NewJobPage({
           />
         </Field>
 
-        <p className="-mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="-mt-2 rounded-md bg-notice px-3 py-2 text-sm text-notice-ink">
           If the company/network is not accurate, the post will be deleted.
         </p>
 
@@ -99,7 +99,7 @@ export default async function NewJobPage({
           <input type="checkbox" name="title_private" className="mt-0.5" />
           <span>
             Hide the title from applicants
-            <span className="block text-xs text-gray-500">
+            <span className="block text-xs text-muted">
               They&apos;ll still see the company, role, location, dates and rate.
             </span>
           </span>
@@ -165,7 +165,7 @@ export default async function NewJobPage({
         </Field>
 
         <Fieldset legend="Your contact info">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             Required to post. Private by default — kept off the listing unless you tick the box
             below.
           </p>
@@ -191,7 +191,7 @@ export default async function NewJobPage({
             <input type="checkbox" name="share_contact" className="mt-0.5" />
             <span>
               Share my contact info with people who apply
-              <span className="block text-xs text-gray-500">
+              <span className="block text-xs text-muted">
                 Only applicants to this job, and only if you tick this. Free either way.
               </span>
             </span>

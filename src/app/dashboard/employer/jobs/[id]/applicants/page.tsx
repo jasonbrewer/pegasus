@@ -97,20 +97,20 @@ export default async function JobApplicantsPage({
         subtitle={
           <>
             {titleRow?.title ?? job.company_network}
-            {jobRole && <span className="text-gray-400"> · {jobRole.label}</span>}
+            {jobRole && <span className="text-muted"> · {jobRole.label}</span>}
           </>
         }
       />
 
       {error && (
-        <p className="mb-5 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error.message}</p>
+        <p className="mb-5 rounded-md bg-danger px-3 py-2 text-sm text-danger-ink">{error.message}</p>
       )}
 
       {!applicants || applicants.length === 0 ? (
-        <p className="text-sm text-gray-500">No applications yet.</p>
+        <p className="text-sm text-muted">No applications yet.</p>
       ) : (
         <>
-          <p className="mb-3 text-xs text-gray-500">
+          <p className="mb-3 text-xs text-muted">
             {applicants.length} {applicants.length === 1 ? "applicant" : "applicants"}, closest
             first
           </p>
@@ -130,21 +130,21 @@ export default async function JobApplicantsPage({
                       profile, where gated contact info appears. */}
                   <Link
                     href={`/freelancers/${applicant.freelancer_id}`}
-                    className="block rounded-lg transition-colors hover:bg-gray-50"
+                    className="group block rounded-lg"
                   >
-                  <Card>
+                  <Card interactive>
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <span className="font-medium underline">
                         {applicant.full_name || "Freelancer"}
                       </span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-muted">
                         {distance ?? "Remote role"}
                       </span>
                     </div>
 
-                    <p className="mt-0.5 text-sm text-gray-600">
+                    <p className="mt-0.5 text-sm text-secondary">
                       {place ?? "Location not set"}
-                      {rate && <span className="text-gray-400"> · {rate}</span>}
+                      {rate && <span className="text-muted"> · {rate}</span>}
                     </p>
 
                     {roleSlugs.length > 0 && (
@@ -158,11 +158,11 @@ export default async function JobApplicantsPage({
 
                     {applicant.cover_note && (
                       <div className="mt-3">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
                           Message
                         </p>
                         {/* Plain text — rendered as text, never as HTML. */}
-                        <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-secondary">
                           {applicant.cover_note}
                         </p>
                       </div>
@@ -170,25 +170,25 @@ export default async function JobApplicantsPage({
 
                     {applicant.credits_html && (
                       <div className="mt-3">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
                           Credits
                         </p>
                         {/* Sanitized server-side at apply time (src/lib/sanitize.ts).
                             Never rendered straight from user input. */}
                         <div
-                          className="text-sm leading-relaxed text-gray-700 [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
+                          className="text-sm leading-relaxed text-secondary [&_a]:underline [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-2 [&_ul]:list-disc"
                           dangerouslySetInnerHTML={{ __html: applicant.credits_html }}
                         />
                       </div>
                     )}
 
                     {!applicant.cover_note && !applicant.credits_html && (
-                      <p className="mt-3 text-sm text-gray-400">
+                      <p className="mt-3 text-sm text-muted">
                         No message sent with this application.
                       </p>
                     )}
 
-                    <p className="mt-3 text-sm text-gray-500">
+                    <p className="mt-3 text-sm text-muted">
                       View full profile &rarr;
                     </p>
                   </Card>

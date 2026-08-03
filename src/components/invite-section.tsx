@@ -28,7 +28,7 @@ export async function InviteSection({ userId }: { userId: string }) {
   if (!origin) return null;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+    <div className="rounded-lg border border-line bg-surface-muted p-4">
       <InviteLink url={buildInviteUrl(origin, userId)} />
     </div>
   );
