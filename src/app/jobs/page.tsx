@@ -187,10 +187,20 @@ export default async function JobsPage({
           Enter a US ZIP code above to see jobs ranked by how close they are to you.
         </p>
       ) : !jobs || jobs.length === 0 ? (
-        <p className="text-sm text-muted">
-          No open jobs match this search. Try widening the radius or clearing the role filter —
-          remote roles always show regardless of distance.
-        </p>
+        /* An empty board is a consequence of the curation, not a failure — so
+           say that first, and keep the practical "what to try" underneath
+           rather than instead of it. */
+        <div className="rounded-lg border border-line bg-surface-muted p-5">
+          <p className="font-medium">No matches yet.</p>
+          <p className="mt-1 text-sm leading-relaxed text-secondary">
+            We don&apos;t fill the board with fake or expired jobs, so what you see is always
+            real. New listings are coming — check back soon.
+          </p>
+          <p className="mt-3 text-sm text-muted">
+            You can also widen the radius or clear the role filter — remote roles always show
+            regardless of distance.
+          </p>
+        </div>
       ) : (
         <>
           <p className="mb-3 text-xs text-muted">
