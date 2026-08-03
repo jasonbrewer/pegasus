@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cleanPastedCredits, plainTextToCredits } from "@/lib/paste-credits";
+import { MAX_CREDITS_LENGTH } from "@/lib/credits-policy";
 
 const TOOLBAR: { command: string; label: string; title: string }[] = [
   { command: "bold", label: "B", title: "Bold" },
@@ -32,11 +34,13 @@ export function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const [html, setHtml] = useState(defaultValue ?? "");
   const [isEmpty, setIsEmpty] = useState(!defaultValue);
+  const [length, setLength] = useState(0);
 
   useEffect(() => {
     if (editorRef.current && defaultValue) {
       editorRef.current.innerHTML = defaultValue;
       setIsEmpty(false);
+      setLength(editorRef.current.textContent?.replace(/\s+/g, " ").trim().length ?? 0);
     }
     // Only seeds the initial value; later edits are owned by the DOM node.
   }, [defaultValue]);
@@ -46,6 +50,38 @@ export function RichTextEditor({
     if (!node) return;
     setHtml(node.innerHTML);
     setIsEmpty(node.textContent?.trim().length === 0);
+    // Counted the same way the server counts it — visible characters, not
+    // markup — so the number here is the number the limit uses.
+    setLength(node.textContent?.replace(/\s+/g, " ").trim().length ?? 0);
+  }
+
+  /**
+   * Pasted markup is cleaned down to the allowlist before it ever enters the
+   * editor, so what the user sees is what gets stored. Without this a paste
+   * out of Word arrives as tens of kilobytes of inline styles wrapped around a
+   * couple of pages of text.
+   *
+   * The server sanitizes again on write; this does not replace that.
+   */
+  function onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
+    const pastedHtml = event.clipboardData.getData("text/html");
+    const pastedText = event.clipboardData.getData("text/plain");
+
+    if (!pastedHtml && !pastedText) return;
+
+    event.preventDefault();
+
+    const clean = pastedHtml
+      ? cleanPastedCredits(pastedHtml)
+      : plainTextToCredits(pastedText);
+
+    if (clean) {
+      document.execCommand("insertHTML", false, clean);
+    } else if (pastedText) {
+      document.execCommand("insertText", false, pastedText);
+    }
+
+    sync();
   }
 
   function run(command: string) {
@@ -88,11 +124,23 @@ export function RichTextEditor({
           aria-label="Credits"
           onInput={sync}
           onBlur={sync}
+          onPaste={onPaste}
           className="prose-sm min-h-40 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-900 [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc"
         />
       </div>
 
       <input type="hidden" name={name} value={html} />
+
+      {length > 0 && (
+        <p
+          className={`mt-1 text-xs ${
+            length > MAX_CREDITS_LENGTH ? "text-red-600" : "text-gray-400"
+          }`}
+        >
+          {length.toLocaleString("en-US")} / {MAX_CREDITS_LENGTH.toLocaleString("en-US")}{" "}
+          characters
+        </p>
+      )}
     </div>
   );
 }
