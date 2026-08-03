@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Semantic colour tokens.
+ *
+ * The dark-mode bug this replaces: the Next starter flipped --background and
+ * --foreground under prefers-color-scheme, so the page went near-black — while
+ * every component still asked for light-palette utilities (text-gray-500,
+ * bg-white, border-gray-200). Dark grey on near-black, everywhere at once.
+ *
+ * The fix is to stop naming colours by their shade and start naming them by
+ * their job. A component says text-muted or bg-surface; what those resolve to
+ * is decided here, once, and swaps with the media query below. Nothing
+ * downstream needs a dark: variant — which is also why nothing downstream can
+ * forget one.
+ *
+ * Every pairing is checked against WCAG AA (4.5:1 for body text, 3:1 for
+ * borders and large text) in both schemes.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Surfaces, back to front. */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+
+  /* Text, most to least prominent. All three clear AA on every surface.
+     There is deliberately no fourth, dimmer level: on a white canvas a shade
+     below --muted cannot reach 4.5:1, which is exactly why the old
+     text-gray-400 (2.54:1) was unreadable long before dark mode existed. */
+  --content: #171717;
+  --secondary: #374151;
+  --muted: #6b7280;
+
+  /* Lines. --line outlines cards, --field bounds a control you can type in or
+     click, --line-soft separates rows inside a card. */
+  --line: #e5e7eb;
+  --line-soft: #f3f4f6;
+  --field: #d1d5db;
+  --strong: #171717;
+
+  /* Inverted actions — the primary buttons. */
+  --accent: #000000;
+  --accent-hover: #1f2937;
+  --accent-ink: #ffffff;
+
+  /* Status. -edge is the border, -ink is the text on the tinted fill. */
+  --notice: #fffbeb;
+  --notice-edge: #fde68a;
+  --notice-ink: #92400e;
+
+  --danger: #fef2f2;
+  --danger-edge: #fca5a5;
+  --danger-ink: #b91c1c;
+
+  --success: #f0fdf4;
+  --success-edge: #bbf7d0;
+  --success-ink: #15803d;
+
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Cards sit a step above the canvas rather than being outlined only, so
+       the page keeps its structure once the borders are this quiet. */
+    --canvas: #0a0a0a;
+    --surface: #141416;
+    --surface-muted: #1b1b1f;
+
+    --content: #ededed;
+    --secondary: #c9cbd1;
+    --muted: #a1a5ae;
+
+    --line: #2e2e34;
+    --line-soft: #212126;
+    --field: #3f3f46;
+    --strong: #ededed;
+
+    /* Black-on-dark is invisible, so the primary button inverts the other way. */
+    --accent: #ededed;
+    --accent-hover: #ffffff;
+    --accent-ink: #0a0a0a;
+
+    /* Dark status tints: a deep desaturated fill with bright ink, rather than
+       the light theme's pale fill with dark ink. */
+    --notice: #302607;
+    --notice-edge: #63501d;
+    --notice-ink: #fcd34d;
+
+    --danger: #331519;
+    --danger-edge: #7a353d;
+    --danger-ink: #fca5a5;
+
+    --success: #102b1d;
+    --success-edge: #245c3c;
+    --success-ink: #6ee7b7;
+
+    /* Makes native controls — select, date inputs, scrollbars, the caret —
+       render dark. Without it the form widgets stay light-on-light. */
+    color-scheme: dark;
   }
 }
 
+/*
+ * Registered with Tailwind so `bg-surface`, `text-muted`, `border-line` and the
+ * rest exist as utilities. `inline` keeps them pointing at the live variable,
+ * which is what lets the media query above re-theme the whole app.
+ */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-content: var(--content);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-field: var(--field);
+  --color-strong: var(--strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-notice: var(--notice);
+  --color-notice-edge: var(--notice-edge);
+  --color-notice-ink: var(--notice-ink);
+
+  --color-danger: var(--danger);
+  --color-danger-edge: var(--danger-edge);
+  --color-danger-ink: var(--danger-ink);
+
+  --color-success: var(--success);
+  --color-success-edge: var(--success-edge);
+  --color-success-ink: var(--success-ink);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--content);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/*
+ * The browser derives its default placeholder colour from the input's own
+ * colour, which lands too faint in both schemes. Pin it to the token instead.
+ */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }

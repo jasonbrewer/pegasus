@@ -93,7 +93,7 @@ export default async function EmployerProfilePage({
       />
 
       {employer.description && (
-        <p className="mb-6 whitespace-pre-line text-sm leading-relaxed text-gray-700">
+        <p className="mb-6 whitespace-pre-line text-sm leading-relaxed text-secondary">
           {employer.description}
         </p>
       )}
@@ -123,12 +123,12 @@ export default async function EmployerProfilePage({
 
       <div className="h-8" />
 
-      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted">
         Posted jobs
       </h2>
 
       {!jobs || jobs.length === 0 ? (
-        <p className="text-sm text-gray-500">No jobs posted yet.</p>
+        <p className="text-sm text-muted">No jobs posted yet.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {jobs.map((job) => {
@@ -158,7 +158,7 @@ export default async function EmployerProfilePage({
                   </div>
 
                   {(rate || dates) && (
-                    <p className="mt-2 text-sm text-gray-500">
+                    <p className="mt-2 text-sm text-muted">
                       {[rate, dates].filter(Boolean).join(" · ")}
                     </p>
                   )}

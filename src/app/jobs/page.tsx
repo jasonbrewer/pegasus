@@ -122,7 +122,7 @@ export default async function JobsPage({
 
       <form method="GET" className="mb-8 grid gap-3 sm:grid-cols-[1fr_1.4fr_1fr_auto]">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-gray-600">Browse from ZIP</span>
+          <span className="text-xs font-medium text-secondary">Browse from ZIP</span>
           <input
             name="zip"
             inputMode="numeric"
@@ -133,7 +133,7 @@ export default async function JobsPage({
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-gray-600">Role</span>
+          <span className="text-xs font-medium text-secondary">Role</span>
           <select name="role" defaultValue={roleFilter ?? ""} className={inputClass}>
             <option value="">All roles</option>
             {ROLES_BY_GROUP.map(({ group, roles }) => (
@@ -150,7 +150,7 @@ export default async function JobsPage({
 
         <div className="flex flex-col gap-1.5">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-gray-600">Within (miles)</span>
+            <span className="text-xs font-medium text-secondary">Within (miles)</span>
             <input
               name="radius"
               type="number"
@@ -163,7 +163,7 @@ export default async function JobsPage({
               className={inputClass}
             />
           </label>
-          <label id="any-distance" className="flex items-center gap-1.5 text-xs text-gray-600">
+          <label id="any-distance" className="flex items-center gap-1.5 text-xs text-secondary">
             <input type="checkbox" name="any_distance" defaultChecked={anyDistance} />
             Any distance
           </label>
@@ -172,29 +172,29 @@ export default async function JobsPage({
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 sm:w-auto"
+            className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover sm:w-auto"
           >
             Search
           </button>
         </div>
-        <p className="text-xs text-gray-500 sm:col-span-4">
+        <p className="text-xs text-muted sm:col-span-4">
           Ticking &ldquo;Any distance&rdquo; ignores the mileage box. Remote roles always show,
           however far away they are.
         </p>
       </form>
 
       {!centroid ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Enter a US ZIP code above to see jobs ranked by how close they are to you.
         </p>
       ) : !jobs || jobs.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           No open jobs match this search. Try widening the radius or clearing the role filter —
           remote roles always show regardless of distance.
         </p>
       ) : (
         <>
-          <p className="mb-3 text-xs text-gray-500">
+          <p className="mb-3 text-xs text-muted">
             {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
             {radiusMiles === null ? " · any distance" : ` · within ${radiusMiles} miles`}
           </p>
@@ -218,16 +218,16 @@ export default async function JobsPage({
                             it — the rule lives in the job_titles policy. */}
                         {job.title ?? "Title hidden by the poster"}
                       </Link>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-muted">
                         {isRemote ? "Remote" : distance}
                       </span>
                     </div>
 
-                    <p className="mt-0.5 text-sm text-gray-600">
+                    <p className="mt-0.5 text-sm text-secondary">
                       <Link href={`/employers/${job.employer_id}`} className="hover:underline">
                         {job.company_network}
                       </Link>
-                      {!isRemote && place && <span className="text-gray-400"> · {place}</span>}
+                      {!isRemote && place && <span className="text-muted"> · {place}</span>}
                     </p>
 
                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -236,12 +236,12 @@ export default async function JobsPage({
                     </div>
 
                     {(rate || dates) && (
-                      <p className="mt-2 text-sm text-gray-500">
+                      <p className="mt-2 text-sm text-muted">
                         {[rate, dates].filter(Boolean).join(" · ")}
                       </p>
                     )}
 
-                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-700">
+                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-secondary">
                       {job.description}
                     </p>
 
@@ -251,10 +251,10 @@ export default async function JobsPage({
                     <div className="mt-3 flex items-center gap-3">
                       {appliedJobIds.has(job.id) ? (
                         <>
-                          <span className="text-sm font-medium text-green-700">Applied</span>
+                          <span className="text-sm font-medium text-success-ink">Applied</span>
                           <Link
                             href={`/jobs/${job.id}`}
-                            className="text-sm text-gray-500 underline"
+                            className="text-sm text-muted underline"
                           >
                             View details
                           </Link>
@@ -262,12 +262,12 @@ export default async function JobsPage({
                       ) : isFreelancer ? (
                         <Link
                           href={`/jobs/${job.id}`}
-                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-accent-hover"
                         >
                           Apply
                         </Link>
                       ) : (
-                        <Link href={`/jobs/${job.id}`} className="text-sm text-gray-500 underline">
+                        <Link href={`/jobs/${job.id}`} className="text-sm text-muted underline">
                           View details
                         </Link>
                       )}

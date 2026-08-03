@@ -133,8 +133,8 @@ export default async function JobDetailPage({
                 <input type="hidden" name="saved" value={isSaved ? "1" : "0"} />
                 <button
                   type="submit"
-                  className={`inline-block rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50 ${
-                    isSaved ? "border-gray-900" : "border-gray-300"
+                  className={`inline-block rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted ${
+                    isSaved ? "border-strong" : "border-field"
                   }`}
                 >
                   {isSaved ? "Unsave" : "Save"}
@@ -156,7 +156,7 @@ export default async function JobDetailPage({
         {job.status !== "open" && <Badge>{job.status}</Badge>}
       </div>
 
-      <p className="mb-6 whitespace-pre-line text-sm leading-relaxed text-gray-700">
+      <p className="mb-6 whitespace-pre-line text-sm leading-relaxed text-secondary">
         {job.description}
       </p>
 
@@ -171,7 +171,7 @@ export default async function JobDetailPage({
 
       {contact && (
         <Card>
-          <p className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-500">
+          <p className="mb-2 text-sm font-medium uppercase tracking-wide text-muted">
             Contact
           </p>
           <dl>
@@ -190,21 +190,21 @@ export default async function JobDetailPage({
             View applicants
           </ButtonLink>
         ) : hasApplied ? (
-          <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+          <p className="rounded-md bg-success px-3 py-2 text-sm text-success-ink">
             You&apos;ve applied to this job.
           </p>
         ) : !isFreelancer ? (
-          <p className="text-sm text-gray-500">Only freelancer accounts can apply to jobs.</p>
+          <p className="text-sm text-muted">Only freelancer accounts can apply to jobs.</p>
         ) : !canApply ? (
           <ParticipationNotice viewer={profile} />
         ) : job.status !== "open" ? (
-          <p className="text-sm text-gray-500">This job is no longer accepting applications.</p>
+          <p className="text-sm text-muted">This job is no longer accepting applications.</p>
         ) : (
           <form action={applyToJob} className="flex flex-col gap-5">
             <input type="hidden" name="job_id" value={job.id} />
             <input type="hidden" name="return_to" value={`/jobs/${job.id}`} />
 
-            <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-muted">
               Apply
             </h2>
 
@@ -225,7 +225,7 @@ export default async function JobDetailPage({
                 name="credits_html"
                 placeholder="Paste your credits here — formatting is kept…"
               />
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 Optional. Paste from a document and the styling comes with it.
               </span>
             </div>
@@ -233,7 +233,7 @@ export default async function JobDetailPage({
             <div>
               <SubmitButton>Send application</SubmitButton>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               Applying is always free and unlimited. A message and your credits are all that
               get sent — the employer opens your full profile from there.
             </p>

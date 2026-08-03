@@ -87,7 +87,7 @@ export default async function EmployerDashboardPage() {
 
       {jobs && jobs.length > 0 && (
         <>
-          <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+          <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-muted">
             Your jobs
           </h2>
           <ul className="flex flex-col gap-3">
@@ -107,10 +107,10 @@ export default async function EmployerDashboardPage() {
                         {job.status !== "open" && <Badge>{job.status}</Badge>}
                       </div>
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-500">{job.company_network}</p>
+                    <p className="mt-0.5 text-sm text-muted">{job.company_network}</p>
 
                     {role && (
-                      <p className="mt-0.5 text-sm text-gray-500">{role.label}</p>
+                      <p className="mt-0.5 text-sm text-muted">{role.label}</p>
                     )}
 
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -142,7 +142,7 @@ export default async function EmployerDashboardPage() {
         {profile?.status === "approved" && (
           <Link
             href="/dashboard/employer/jobs/new"
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover"
           >
             Post a job
           </Link>

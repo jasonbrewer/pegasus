@@ -42,9 +42,9 @@ function actionsFor(role: AccountRole, status: AccountStatus): Action[] {
 }
 
 const toneClass: Record<Action["tone"], string> = {
-  primary: "bg-black text-white hover:bg-gray-800 border-black",
-  danger: "border-red-300 text-red-700 hover:bg-red-50",
-  plain: "border-gray-300 hover:bg-gray-50",
+  primary: "bg-accent text-accent-ink hover:bg-accent-hover border-accent",
+  danger: "border-danger-edge text-danger-ink hover:bg-danger",
+  plain: "border-field hover:bg-surface-muted",
 };
 
 export function StatusActions({

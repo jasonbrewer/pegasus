@@ -20,7 +20,7 @@ export function DeleteJobButton({ jobId, title }: { jobId: string; title: string
       <input type="hidden" name="job_id" value={jobId} />
       <button
         type="submit"
-        className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+        className="rounded-md border border-danger-edge px-3 py-1.5 text-sm font-medium text-danger-ink hover:bg-danger"
       >
         Delete posting
       </button>

@@ -19,7 +19,7 @@ export default async function SignUpPage({
         <h1 className="text-2xl font-semibold">
           {role === "freelancer" ? "Apply to join Pegasus" : "Create your account"}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted">
           {role === "freelancer"
             ? "Membership is free. Applications are reviewed by a person before your profile goes live."
             : "Sign up and post the same day. Freelance profiles are always free; employers pay to post (billing stubbed for v1)."}
@@ -27,7 +27,7 @@ export default async function SignUpPage({
       </div>
 
       {invitedBy && (
-        <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
+        <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-secondary">
           You were invited to Pegasus. Your application still gets read — the invite just
           puts it near the front.
         </p>
@@ -37,7 +37,7 @@ export default async function SignUpPage({
         <Link
           href={`/sign-up?role=freelancer${invitedBy ? `&ref=${invitedBy}` : ""}`}
           className={`flex-1 rounded-md border px-3 py-2 text-center ${
-            role === "freelancer" ? "border-black font-medium" : "border-gray-300 text-gray-500"
+            role === "freelancer" ? "border-accent font-medium" : "border-field text-muted"
           }`}
         >
           I&apos;m crew — apply
@@ -45,7 +45,7 @@ export default async function SignUpPage({
         <Link
           href={`/sign-up?role=employer${invitedBy ? `&ref=${invitedBy}` : ""}`}
           className={`flex-1 rounded-md border px-3 py-2 text-center ${
-            role === "employer" ? "border-black font-medium" : "border-gray-300 text-gray-500"
+            role === "employer" ? "border-accent font-medium" : "border-field text-muted"
           }`}
         >
           I&apos;m hiring
@@ -53,7 +53,7 @@ export default async function SignUpPage({
       </div>
 
       {params.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
+        <p className="rounded-md bg-danger px-3 py-2 text-sm text-danger-ink">{params.error}</p>
       )}
 
       <form action={signUp} className="flex flex-col gap-3">
@@ -62,7 +62,7 @@ export default async function SignUpPage({
 
         <label className="flex flex-col gap-1 text-sm">
           Full name
-          <input name="full_name" required className="rounded-md border border-gray-300 px-3 py-2" />
+          <input name="full_name" required className="rounded-md border border-field px-3 py-2" />
         </label>
 
         {role === "freelancer" ? (
@@ -73,22 +73,22 @@ export default async function SignUpPage({
               required
               inputMode="numeric"
               placeholder="23220"
-              className="rounded-md border border-gray-300 px-3 py-2"
+              className="rounded-md border border-field px-3 py-2"
             />
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted">
               Sets your location for proximity matching. You can widen your travel radius later.
             </span>
           </label>
         ) : (
           <label className="flex flex-col gap-1 text-sm">
             Company name
-            <input name="company_name" required className="rounded-md border border-gray-300 px-3 py-2" />
+            <input name="company_name" required className="rounded-md border border-field px-3 py-2" />
           </label>
         )}
 
         <label className="flex flex-col gap-1 text-sm">
           Email
-          <input type="email" name="email" required className="rounded-md border border-gray-300 px-3 py-2" />
+          <input type="email" name="email" required className="rounded-md border border-field px-3 py-2" />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
@@ -98,18 +98,18 @@ export default async function SignUpPage({
             name="password"
             required
             minLength={6}
-            className="rounded-md border border-gray-300 px-3 py-2"
+            className="rounded-md border border-field px-3 py-2"
           />
         </label>
 
-        <button type="submit" className="mt-2 rounded-md bg-black px-3 py-2 text-sm font-medium text-white">
+        <button type="submit" className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink">
           {role === "freelancer" ? "Submit application" : "Create account"}
         </button>
 
         {role === "freelancer" && (
           // Said before signing up, so the pending state that follows is what
           // they were told to expect rather than a surprise.
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             You&apos;ll be able to sign in and build your profile right away. Employers
             can&apos;t see you, and you can&apos;t apply to jobs, until an admin approves
             your application.
@@ -117,7 +117,7 @@ export default async function SignUpPage({
         )}
       </form>
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-muted">
         Already have an account?{" "}
         <Link href="/sign-in" className="underline">
           Sign in

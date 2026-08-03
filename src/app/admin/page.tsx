@@ -97,11 +97,11 @@ export default async function AdminPage({
 
       {search && (
         <section className="mb-10">
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted">
             Results for &ldquo;{search}&rdquo;
           </h2>
           {!matches || matches.length === 0 ? (
-            <p className="text-sm text-gray-500">Nobody by that name.</p>
+            <p className="text-sm text-muted">Nobody by that name.</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {matches.map((account) => (
@@ -114,7 +114,7 @@ export default async function AdminPage({
                       >
                         {account.full_name || "(no name)"}
                       </Link>
-                      <span className="flex items-center gap-2 text-sm text-gray-500">
+                      <span className="flex items-center gap-2 text-sm text-muted">
                         {account.role}
                         <StatusBadge status={account.status} />
                       </span>
@@ -128,16 +128,16 @@ export default async function AdminPage({
       )}
 
       <section className="mb-10">
-        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-gray-500">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-muted">
           Applications to join
         </h2>
-        <p className="mb-3 text-sm text-gray-500">
+        <p className="mb-3 text-sm text-muted">
           Freelancers waiting on review. They can sign in and build a profile, but no employer
           can see them yet.
         </p>
 
         {!pending || pending.length === 0 ? (
-          <p className="text-sm text-gray-500">Nothing in the queue.</p>
+          <p className="text-sm text-muted">Nothing in the queue.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {pending.map((account) => (
@@ -150,12 +150,12 @@ export default async function AdminPage({
                     >
                       {account.full_name || "(no name)"}
                     </Link>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted">
                       Applied {formatTimestamp(account.created_at)}
                     </span>
                   </div>
 
-                  <p className="mt-0.5 text-sm text-gray-500">
+                  <p className="mt-0.5 text-sm text-muted">
                     {account.invited_by ? (
                       <>
                         Invited by{" "}
@@ -187,16 +187,16 @@ export default async function AdminPage({
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-gray-500">
+        <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-muted">
           Employers
         </h2>
-        <p className="mb-3 text-sm text-gray-500">
+        <p className="mb-3 text-sm text-muted">
           Employers join without review. Blocking one hides every posting they have and stops
           them making new ones.
         </p>
 
         {!employers || employers.length === 0 ? (
-          <p className="text-sm text-gray-500">No employers yet.</p>
+          <p className="text-sm text-muted">No employers yet.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {employers.map((account) => (
@@ -211,7 +211,7 @@ export default async function AdminPage({
                     </Link>
                     <StatusBadge status={account.status} />
                   </div>
-                  <p className="mt-0.5 text-sm text-gray-500">
+                  <p className="mt-0.5 text-sm text-muted">
                     {account.full_name} · joined {formatTimestamp(account.created_at)}
                   </p>
                   <div className="mt-3">
