@@ -220,6 +220,59 @@ exactly `full_name` and `avatar_path`, so `status`, `is_admin` and `role` are un
 the client — a row-level policy could not have expressed that, because RLS cannot restrict
 *which columns* of a permitted row you may write.
 
+## Password recovery — what you must configure
+
+The flow is built (`/forgot-password` → emailed link → `/auth/callback` → `/reset-password`), but
+it sends an **outgoing email from Supabase**, and that part is configuration, not code. Without
+the two settings below the link either never arrives or arrives pointing at the wrong host.
+
+### 1. Redirect URL allowlist (required — recovery is broken without it)
+
+Supabase refuses any `redirectTo` that is not on its allowlist, and fails *silently* from the
+user's point of view: the mail arrives, the link bounces to the site root, and nothing happens.
+
+**Dashboard → Authentication → URL Configuration**
+
+- **Site URL**: `https://productioncircles.com`
+- **Redirect URLs**: add `https://productioncircles.com/auth/callback`
+  (plus `http://localhost:3000/auth/callback` for local work, and your Vercel preview pattern
+  if you test recovery on previews)
+
+Also set `NEXT_PUBLIC_SITE_URL=https://productioncircles.com` in Vercel — the reset link is built
+from it, and without it the link is built from whatever hostname the request arrived on.
+
+### 2. Email sending — the built-in sender is NOT good enough for launch
+
+Supabase's built-in SMTP is explicitly a development convenience:
+
+- **Rate limited to a handful of emails per hour, project-wide.** Not per user — per project. A
+  few people resetting passwords in the same hour and the rest silently get nothing.
+- **Sends from a shared Supabase domain**, so it has no reputation tied to productioncircles.com
+  and lands in spam often enough to matter.
+- **No delivery visibility** — no bounce handling, no log of what was sent.
+
+For launch, configure custom SMTP: **Dashboard → Project Settings → Authentication → SMTP
+Settings**. Resend, Postmark and SES all work; all need a verified sending domain (a couple of
+DNS records) before mail leaves reliably. Until that is done, treat recovery as working but
+unreliable — fine for testing, not for real members locked out of their accounts.
+
+### 3. The recovery email template
+
+**Dashboard → Authentication → Email Templates → Reset Password.** The default is Supabase
+boilerplate that says "Supabase", not "Production Circles". Suggested replacement — the
+`{{ .ConfirmationURL }}` token is what routes through `/auth/callback`:
+
+```html
+<h2>Reset your Production Circles password</h2>
+<p>Someone asked to reset the password for this address. If that was you, use the link below —
+it expires in an hour and can only be used once.</p>
+<p><a href="{{ .ConfirmationURL }}">Choose a new password</a></p>
+<p>If it wasn't you, ignore this email. Your password stays as it is.</p>
+```
+
+The in-app copy already matches this: the request page promises a link that "expires in an
+hour", and an expired or reused link bounces back to `/forgot-password` saying so.
+
 ## ZIP geocoding
 
 Users enter a ZIP; the system stores the ZIP's centroid as lat/lng. There is no external

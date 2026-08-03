@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
+import { normalizePhone } from "@/lib/phone";
 import type { RateType } from "@/types/database";
 
 const NEW_JOB_PATH = "/dashboard/employer/jobs/new";
@@ -51,7 +52,7 @@ export async function createJob(formData: FormData) {
   if (!contactName) fail(NEW_JOB_PATH, "A contact name is required to post");
 
   const contactEmail = ((formData.get("contact_email") as string) ?? "").trim() || null;
-  const contactPhone = ((formData.get("contact_phone") as string) ?? "").trim() || null;
+  const contactPhone = normalizePhone(formData.get("contact_phone"));
 
   if (!contactEmail && !contactPhone) {
     fail(NEW_JOB_PATH, "Add a contact email or phone — one is required to post");

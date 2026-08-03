@@ -23,6 +23,9 @@ export interface Database {
           status: AccountStatus;
           is_admin: boolean;
           invited_by: string | null;
+          // 3.3 — set only on the pending -> approved crossing, by
+          // admin_set_account_status(). Null for accounts that never waited.
+          approved_at: string | null;
           created_at: string;
           updated_at: string;
         };

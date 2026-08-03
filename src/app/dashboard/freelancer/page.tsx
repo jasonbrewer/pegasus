@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { formatTimestamp } from "@/lib/format";
-import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
+import {
+  PageShell,
+  PageHeader,
+  Badge,
+  Card,
+  ButtonLink,
+  DetailRow,
+  SuccessBanner,
+} from "@/components/ui";
 import { InviteSection } from "@/components/invite-section";
 import { ParticipationNotice } from "@/components/participation-notice";
 import { WithdrawApplicationButton } from "@/components/withdraw-application-button";
@@ -21,7 +29,7 @@ export default async function FreelancerDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, status")
+    .select("full_name, role, status, approved_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -127,6 +135,15 @@ export default async function FreelancerDashboardPage() {
         subtitle={user.email}
         action={<ButtonLink href="/dashboard/freelancer/profile">Edit profile</ButtonLink>}
       />
+
+      {/* 3.3 — shown only to someone who actually crossed from pending to
+          approved. approved_at is written by admin_set_account_status() on
+          that transition alone, so employers (approved at signup), anyone
+          approved before this shipped, and anyone merely unblocked all have
+          null here and see nothing. */}
+      {profile?.status === "approved" && profile.approved_at && (
+        <SuccessBanner message="You've been approved — your profile is live and you can apply to jobs." />
+      )}
 
       {/* 9.4 — a pending or blocked freelancer is told why the marketplace
           looks quiet. The invisibility itself is RLS, not this banner. */}

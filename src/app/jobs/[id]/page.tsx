@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { formatRate, formatDateRange } from "@/lib/format";
+import { formatPhone } from "@/lib/phone";
 import {
   PageShell,
   PageHeader,
@@ -56,6 +57,7 @@ export default async function JobDetailPage({
     { data: place },
     { data: existing },
     { data: savedRow },
+    { data: ownProfile },
   ] = await Promise.all([
       supabase.from("profiles").select("role, status").eq("id", user.id).maybeSingle(),
       supabase
@@ -81,6 +83,12 @@ export default async function JobDetailPage({
         .select("job_id")
         .eq("job_id", id)
         .eq("freelancer_id", user.id)
+        .maybeSingle(),
+      // 3.4 — the applicant's own profile credits, to pre-fill the apply form.
+      supabase
+        .from("freelancer_profiles")
+        .select("credits_html")
+        .eq("profile_id", user.id)
         .maybeSingle(),
     ]);
 
@@ -180,7 +188,7 @@ export default async function JobDetailPage({
           <dl>
             <DetailRow label="Name" value={contact.contact_name} />
             <DetailRow label="Email" value={contact.contact_email} />
-            <DetailRow label="Phone" value={contact.contact_phone} />
+            <DetailRow label="Phone" value={formatPhone(contact.contact_phone)} />
           </dl>
         </Card>
       )}
@@ -224,8 +232,12 @@ export default async function JobDetailPage({
 
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">Credits or résumé</span>
+              {/* 3.4 — starts from the profile's "Credits or résumé" rather
+                  than blank. Editable before sending: what gets submitted is
+                  whatever is in the box, and the profile is untouched. */}
               <RichTextEditor
                 name="credits_html"
+                defaultValue={ownProfile?.credits_html}
                 placeholder="Paste your credits here — formatting is kept…"
               />
               <span className="text-xs text-muted">
