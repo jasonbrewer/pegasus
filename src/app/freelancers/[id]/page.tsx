@@ -11,11 +11,6 @@ import {
   ButtonLink,
 } from "@/components/ui";
 
-function formatRate(cents: number | null) {
-  if (cents == null) return null;
-  return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}/day`;
-}
-
 export default async function FreelancerProfilePage({
   params,
 }: {
@@ -37,7 +32,7 @@ export default async function FreelancerProfilePage({
   const { data: freelancer } = await supabase
     .from("freelancer_profiles")
     .select(
-      "profile_id, bio, credits_html, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url"
+      "profile_id, bio, credits_html, home_zip, reel_url, portfolio_url"
     )
     .eq("profile_id", id)
     .maybeSingle();
@@ -145,11 +140,6 @@ export default async function FreelancerProfilePage({
         <Card>
           <dl>
             <DetailRow label="Based in" value={location} />
-            <DetailRow label="Day rate" value={formatRate(freelancer.day_rate_cents)} />
-            <DetailRow
-              label="Travels up to"
-              value={`${freelancer.travel_radius_miles} miles`}
-            />
             <DetailRow
               label="Reel"
               value={
@@ -230,7 +220,7 @@ export default async function FreelancerProfilePage({
         {freelancer.credits_html && (
           <section>
             <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-muted">
-              Credits
+              Credits or résumé
             </h2>
             {/* Sanitized server-side on write (src/lib/sanitize.ts) — never
                 rendered straight from user input. */}

@@ -126,7 +126,6 @@ export default async function JobsPage({
           <input
             name="zip"
             inputMode="numeric"
-            placeholder="23220"
             defaultValue={zipInput}
             className={inputClass}
           />

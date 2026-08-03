@@ -1,5 +1,5 @@
 -- Read-only audit: does the live database actually contain everything
--- migrations 20260801000004 .. 20260801000010 claim to create?
+-- migrations 20260801000004 .. 20260801000011 claim to create?
 --
 -- Run it in the Supabase SQL editor. It writes nothing and returns one row per
 -- expected object, MISSING rows first.
@@ -47,7 +47,8 @@ begin
     ('000009','applications','first_viewed_at'),
     ('000010','profiles','status'),
     ('000010','profiles','is_admin'),
-    ('000010','profiles','invited_by')
+    ('000010','profiles','invited_by'),
+    ('000011','applications','withdrawn_at')
   ) as m(migration, tbl, col);
 
   -- ---- columns that must be GONE ------------------------------------------
@@ -132,7 +133,8 @@ begin
     ('000010','jobs','jobs are readable when the employer is participating'),
     ('000010','jobs','participating employers create jobs for themselves'),
     ('000010','job_titles','job titles are readable when the job is, unless hidden'),
-    ('000010','applications','participating freelancers apply to jobs')
+    ('000010','applications','participating freelancers apply to jobs'),
+    ('000011','applications','freelancers withdraw their own applications')
   ) as m(migration, tbl, pol);
 
   -- ---- policies that must be GONE -----------------------------------------
@@ -153,7 +155,8 @@ begin
     ('000010','jobs','jobs are readable by authenticated users'),
     ('000010','jobs','employers create jobs for themselves'),
     ('000010','job_titles','job titles are readable unless the poster hid them'),
-    ('000010','applications','freelancers apply to jobs')
+    ('000010','applications','freelancers apply to jobs'),
+    ('000011','applications','employers update application status on their jobs')
   ) as m(migration, tbl, pol);
 
   -- ---- table privileges (RLS narrows; it never grants) ---------------------
@@ -212,7 +215,8 @@ begin
     ('000009','public.mark_applicants_viewed(uuid)'),
     ('000010','public.current_user_is_admin()'),
     ('000010','public.is_participating(uuid)'),
-    ('000010','public.admin_set_account_status(uuid, public.account_status)')
+    ('000010','public.admin_set_account_status(uuid, public.account_status)'),
+    ('000011','public.reapply_to_job(uuid, text, text)')
   ) as m(migration, sig);
 
   -- job_applicants must RETURN credits_html (000007's whole point), and
@@ -241,8 +245,32 @@ begin
     ('000009','public.mark_applicants_viewed(uuid)'),
     ('000010','public.current_user_is_admin()'),
     ('000010','public.is_participating(uuid)'),
-    ('000010','public.admin_set_account_status(uuid, public.account_status)')
+    ('000010','public.admin_set_account_status(uuid, public.account_status)'),
+    ('000011','public.reapply_to_job(uuid, text, text)')
   ) as m(migration, sig);
+
+  -- ---- 000011: only withdrawn_at is client-writable on applications -------
+  insert into migration_audit
+  select '000011', 'grant absent', 'authenticated -> applications UPDATE (table-level)',
+         case when has_table_privilege('authenticated', 'public.applications', 'UPDATE')
+              then 'MISSING (table-level UPDATE still granted)' else 'ok' end;
+
+  insert into migration_audit
+  select '000011', 'grant absent', 'authenticated -> applications.' || m.col || ' UPDATE',
+         case when has_column_privilege('authenticated', 'public.applications', m.col, 'UPDATE')
+              then 'MISSING (column is writable)' else 'ok' end
+  from (values ('cover_note'), ('credits_html'), ('status'), ('first_viewed_at')) as m(col);
+
+  insert into migration_audit
+  select '000011', 'grant UPDATE', 'authenticated -> applications.withdrawn_at',
+         case when has_column_privilege('authenticated', 'public.applications', 'withdrawn_at', 'UPDATE')
+              then 'ok' else 'MISSING (withdrawing is broken)' end;
+
+  insert into migration_audit
+  select '000011', 'function returns', 'job_applicants -> hides withdrawn',
+         case when to_regprocedure('public.job_applicants(uuid)') is null then 'MISSING (no function)'
+              when pg_get_functiondef(to_regprocedure('public.job_applicants(uuid)')) like '%withdrawn_at is null%'
+              then 'ok' else 'MISSING' end;
 
   -- ---- 000010: nobody can promote themselves ------------------------------
   -- profiles.status and profiles.is_admin must NOT be writable from the

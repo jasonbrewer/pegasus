@@ -72,11 +72,10 @@ export default async function SignUpPage({
               name="home_zip"
               required
               inputMode="numeric"
-              placeholder="23220"
               className="rounded-md border border-field px-3 py-2"
             />
             <span className="text-xs text-muted">
-              Sets your location for proximity matching. You can widen your travel radius later.
+              Sets your location for proximity matching. Only your city and state are shown to employers.
             </span>
           </label>
         ) : (

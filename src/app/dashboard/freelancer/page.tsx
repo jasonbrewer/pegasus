@@ -7,6 +7,7 @@ import { formatTimestamp } from "@/lib/format";
 import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
 import { InviteSection } from "@/components/invite-section";
 import { ParticipationNotice } from "@/components/participation-notice";
+import { WithdrawApplicationButton } from "@/components/withdraw-application-button";
 
 export default async function FreelancerDashboardPage() {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export default async function FreelancerDashboardPage() {
 
   const { data: freelancer } = await supabase
     .from("freelancer_profiles")
-    .select("home_zip, travel_radius_miles, bio, day_rate_cents")
+    .select("home_zip, bio")
     .eq("profile_id", user.id)
     .maybeSingle();
 
@@ -51,7 +52,7 @@ export default async function FreelancerDashboardPage() {
   const [{ data: applications }, { data: saves }] = await Promise.all([
     supabase
       .from("applications")
-      .select("job_id, first_viewed_at, created_at")
+      .select("job_id, first_viewed_at, withdrawn_at, created_at")
       .eq("freelancer_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -83,7 +84,15 @@ export default async function FreelancerDashboardPage() {
   const titleByJob = new Map((titleRows ?? []).map((t) => [t.job_id, t.title]));
 
   /** Shared card body for both lists — same job, two different contexts. */
-  function JobLine({ jobId, meta }: { jobId: string; meta: ReactNode }) {
+  function JobLine({
+    jobId,
+    meta,
+    footer,
+  }: {
+    jobId: string;
+    meta: ReactNode;
+    footer?: ReactNode;
+  }) {
     const job = jobById.get(jobId);
     const role = job ? ROLE_BY_SLUG.get(job.role_slug) : null;
     // Missing title = the poster hid it (job_titles returns no row), not a
@@ -106,6 +115,7 @@ export default async function FreelancerDashboardPage() {
           {job ? job.company_network : "This posting is no longer listed"}
           {role && <span className="text-muted"> · {role.label}</span>}
         </p>
+        {footer && <div className="mt-3">{footer}</div>}
       </Card>
     );
   }
@@ -140,22 +150,15 @@ export default async function FreelancerDashboardPage() {
             label="Based in"
             value={place ? [place.city, place.state].filter(Boolean).join(", ") : null}
           />
-          <DetailRow label="Travel radius" value={`${freelancer?.travel_radius_miles ?? 25} miles`} />
           <DetailRow label="Roles selected" value={roleCount > 0 ? String(roleCount) : "None yet"} />
-          <DetailRow
-            label="Day rate"
-            value={
-              freelancer?.day_rate_cents != null
-                ? `$${(freelancer.day_rate_cents / 100).toLocaleString("en-US")}/day`
-                : "Not set"
-            }
-          />
         </dl>
       </Card>
 
-      {/* 8.1 — My applications. Two statuses, and neither is set by hand:
+      {/* 8.1 / 2.3 — My applications. Three states, none set by hand:
           "Applied" is the row existing, "Viewed" is the employer having
-          opened their applicant view. */}
+          opened their applicant view, and "Withdrawn" is the applicant
+          pulling out. A withdrawn application stays here — the employer just
+          stops seeing it — and applying again reactivates the same row. */}
       <h2 className="mt-8 mb-3 text-sm font-medium uppercase tracking-wide text-muted">
         My applications
       </h2>
@@ -169,21 +172,49 @@ export default async function FreelancerDashboardPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {applications.map((application) => (
-            <li key={application.job_id}>
-              <JobLine
-                jobId={application.job_id}
-                meta={
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm text-muted">
-                      {formatTimestamp(application.created_at)}
+          {applications.map((application) => {
+            const withdrawn = application.withdrawn_at !== null;
+            const status = withdrawn
+              ? "Withdrawn"
+              : application.first_viewed_at
+                ? "Viewed"
+                : "Applied";
+
+            return (
+              <li key={application.job_id}>
+                <JobLine
+                  jobId={application.job_id}
+                  meta={
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm text-muted">
+                        {formatTimestamp(application.created_at)}
+                      </span>
+                      <Badge>{status}</Badge>
                     </span>
-                    <Badge>{application.first_viewed_at ? "Viewed" : "Applied"}</Badge>
-                  </span>
-                }
-              />
-            </li>
-          ))}
+                  }
+                  footer={
+                    withdrawn ? (
+                      // The job may also have closed since; the detail page
+                      // decides whether applying again is still possible.
+                      jobById.has(application.job_id) ? (
+                        <Link
+                          href={`/jobs/${application.job_id}`}
+                          className="text-sm underline"
+                        >
+                          Apply again
+                        </Link>
+                      ) : null
+                    ) : (
+                      <WithdrawApplicationButton
+                        jobId={application.job_id}
+                        title={titleByJob.get(application.job_id) ?? "this job"}
+                      />
+                    )
+                  }
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
 
