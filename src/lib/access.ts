@@ -76,7 +76,7 @@ export function participationNotice(
   return {
     title: "Your application is under review",
     body:
-      "Pegasus is a curated community, so a person reads every application. " +
+      "Production Circles is a curated community, so a person reads every application. " +
       "Fill out your profile in the meantime — a complete profile with credits and a reel gets reviewed faster. " +
       "You'll be able to apply to jobs once you're approved, and until then employers can't see you.",
   };

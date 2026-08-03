@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pegasus",
+  title: "Production Circles",
   description: "A regional, local-first marketplace for freelance video & production talent.",
 };
 

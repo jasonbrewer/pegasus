@@ -19,7 +19,7 @@ export default function Home() {
           A curated production community.
         </h1>
         <p className="mt-4 max-w-xl text-lg leading-relaxed text-secondary">
-          Pegasus is a vetted network of freelance video and production people — and the
+          Production Circles is a vetted network of freelance video and production people — and the
           companies, agencies and producers who hire them. Members are reviewed, not
           auto-listed, and everything here is behind a login. No public directory, no
           scraping your details, no cold outreach from strangers.

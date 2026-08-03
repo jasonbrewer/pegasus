@@ -73,7 +73,7 @@ export default async function AdminPage({
     <PageShell>
       <PageHeader
         title="Moderation"
-        subtitle="Who gets into Pegasus, and who stays in."
+        subtitle="Who gets into Production Circles, and who stays in."
       />
 
       <ErrorBanner message={query.error} />

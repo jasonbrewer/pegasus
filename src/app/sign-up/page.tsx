@@ -17,7 +17,7 @@ export default async function SignUpPage({
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold">
-          {role === "freelancer" ? "Apply to join Pegasus" : "Create your account"}
+          {role === "freelancer" ? "Apply to join Production Circles" : "Create your account"}
         </h1>
         <p className="mt-1 text-sm text-muted">
           {role === "freelancer"
@@ -28,8 +28,8 @@ export default async function SignUpPage({
 
       {invitedBy && (
         <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-secondary">
-          You were invited to Pegasus. Your application still gets read — the invite just
-          puts it near the front.
+          You were invited to Production Circles. Your application still gets read — the
+          invite just puts it near the front.
         </p>
       )}
 

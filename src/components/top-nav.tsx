@@ -55,8 +55,11 @@ export async function TopNav() {
   return (
     <header className="border-b border-line">
       <nav className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 sm:px-6">
-        <Link href={user ? "/dashboard" : "/"} className="text-sm font-semibold tracking-tight">
-          Pegasus
+        <Link
+          href={user ? "/dashboard" : "/"}
+          className="whitespace-nowrap text-sm font-semibold tracking-tight"
+        >
+          Production Circles
         </Link>
 
         {visibleLinks.length > 0 && (
