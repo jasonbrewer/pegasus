@@ -13,9 +13,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * One description, used for the meta tag and the link preview alike, so the
+ * two can't drift into saying different things about what the site is.
+ *
+ * It matches the landing page's framing: a jobs board, both sides vetted, free
+ * on both sides. No metro in it — the old "regional, local-first" wording
+ * outlived the Richmond-only positioning and was still being served to search
+ * results and every shared link.
+ */
+const DESCRIPTION =
+  "A curated jobs board for freelance video and production crew — and the companies, " +
+  "agencies and producers who hire them. Free to post, free to apply.";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://productioncircles.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Production Circles",
-  description: "A regional, local-first marketplace for freelance video & production talent.",
+  description: DESCRIPTION,
+  // Without an explicit openGraph block Next emits no og:* tags at all, and
+  // each crawler guesses differently. Spelling it out is what makes the
+  // description above actually the one that shows in a shared link.
+  openGraph: {
+    type: "website",
+    siteName: "Production Circles",
+    title: "Production Circles",
+    description: DESCRIPTION,
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: "Production Circles",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
