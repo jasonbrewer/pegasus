@@ -4,7 +4,7 @@ import { signIn } from "@/app/auth/actions";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; password_changed?: string }>;
 }) {
   const params = await searchParams;
   const next = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : null;
@@ -16,6 +16,12 @@ export default async function SignInPage({
       {next && (
         <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-secondary">
           Sign in to continue — Production Circles profiles and jobs are members-only.
+        </p>
+      )}
+
+      {params.password_changed && (
+        <p className="rounded-md bg-success px-3 py-2 text-sm text-success-ink">
+          Your password has been changed. Sign in with the new one.
         </p>
       )}
 

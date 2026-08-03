@@ -21,7 +21,6 @@ export default async function ConfirmPage({
     token_hash?: string;
     type?: string;
     code?: string;
-    next?: string;
     error_description?: string;
   }>;
 }) {
@@ -33,10 +32,17 @@ export default async function ConfirmPage({
 
   const tokenHash = params.token_hash;
   const code = params.code;
-  const type = params.type ?? "email";
-  const isRecovery = type === "recovery";
 
-  const next = params.next ?? (isRecovery ? "/reset-password" : "/dashboard");
+  // Recovery is the DEFAULT when no type is given, not "email".
+  //
+  // Supabase's /auth/v1/verify redirects back with only `?code=…` — it does not
+  // re-append `type`. Defaulting to "email" therefore sent every recovery link
+  // that came through the verify endpoint to the dashboard, authenticated but
+  // with no way to actually set a password. Recovery is also the only kind of
+  // mail this project sends (signup confirmations are off), so links already
+  // sitting in inboxes with no type are recovery links.
+  const type = params.type ?? "recovery";
+  const isRecovery = type === "recovery";
 
   if (supabaseError || (!tokenHash && !code)) {
     return (
@@ -80,8 +86,7 @@ export default async function ConfirmPage({
       <form action={confirmEmailLink}>
         <input type="hidden" name="token_hash" value={tokenHash ?? ""} />
         <input type="hidden" name="code" value={code ?? ""} />
-        <input type="hidden" name="type" value={type} />
-        <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="intent" value={isRecovery ? "recovery" : "email"} />
         <button
           type="submit"
           className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink hover:bg-accent-hover"

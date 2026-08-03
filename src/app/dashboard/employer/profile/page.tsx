@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -125,6 +126,12 @@ export default async function EditEmployerProfilePage({
         <div className="flex items-center gap-4 pt-1">
           <SubmitButton>Save profile</SubmitButton>
         </div>
+
+        <p className="text-sm text-muted">
+          <Link href="/account/password" className="underline">
+            Change your password
+          </Link>
+        </p>
       </form>
     </PageShell>
   );
