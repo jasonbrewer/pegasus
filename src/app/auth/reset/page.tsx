@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { confirmEmailLink } from "@/app/auth/actions";
 
 /**
@@ -64,12 +65,9 @@ export default async function AuthResetPage({
         <input type="hidden" name="code" value={code ?? ""} />
         {/* The intent is fixed by the route, not read from the URL. */}
         <input type="hidden" name="intent" value="recovery" />
-        <button
-          type="submit"
-          className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink hover:bg-accent-hover"
-        >
+        <SubmitButton className="w-full" pendingLabel="Opening…">
           Continue to set a new password
-        </button>
+        </SubmitButton>
       </form>
 
       <p className="text-center text-sm text-muted">

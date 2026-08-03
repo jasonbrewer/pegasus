@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { signIn } from "@/app/auth/actions";
 
 export default async function SignInPage({
@@ -52,9 +53,7 @@ export default async function SignInPage({
           </Link>
         </p>
 
-        <button type="submit" className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink">
-          Sign in
-        </button>
+        <SubmitButton className="mt-2" pendingLabel="Signing in…">Sign in</SubmitButton>
       </form>
 
       <p className="text-center text-sm text-muted">

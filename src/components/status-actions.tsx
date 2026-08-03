@@ -1,4 +1,5 @@
 import { setAccountStatus } from "@/app/admin/actions";
+import { SubmitButton } from "@/components/submit-button";
 import type { AccountRole, AccountStatus } from "@/types/database";
 
 type Action = {
@@ -41,11 +42,12 @@ function actionsFor(role: AccountRole, status: AccountStatus): Action[] {
   ];
 }
 
-const toneClass: Record<Action["tone"], string> = {
-  primary: "bg-accent text-accent-ink hover:bg-accent-hover border-accent",
-  danger: "border-danger-edge text-danger-ink hover:bg-danger",
-  plain: "border-field hover:bg-surface-muted",
-};
+/** Maps this file's tones onto the shared button's variants. */
+const toneVariant = {
+  primary: "primary",
+  danger: "danger",
+  plain: "secondary",
+} as const;
 
 export function StatusActions({
   profileId,
@@ -65,12 +67,11 @@ export function StatusActions({
           <input type="hidden" name="profile_id" value={profileId} />
           <input type="hidden" name="status" value={action.status} />
           <input type="hidden" name="return_to" value={returnTo} />
-          <button
-            type="submit"
-            className={`rounded-md border px-3 py-1.5 text-sm font-medium ${toneClass[action.tone]}`}
-          >
+          {/* Moderation writes go through admin_set_account_status(); a
+              double click would fire it twice for no reason. */}
+          <SubmitButton variant={toneVariant[action.tone]} size="sm" pendingLabel="Saving…">
             {action.label}
-          </button>
+          </SubmitButton>
         </form>
       ))}
     </div>

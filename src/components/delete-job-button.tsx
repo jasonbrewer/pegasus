@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteJob } from "@/app/dashboard/employer/jobs/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 /**
  * Confirm-then-delete. The dialog is a courtesy only — ownership is enforced
@@ -18,12 +19,9 @@ export function DeleteJobButton({ jobId, title }: { jobId: string; title: string
       }}
     >
       <input type="hidden" name="job_id" value={jobId} />
-      <button
-        type="submit"
-        className="rounded-md border border-danger-edge px-3 py-1.5 text-sm font-medium text-danger-ink hover:bg-danger"
-      >
+      <SubmitButton variant="danger" size="sm" pendingLabel="Deleting…">
         Delete posting
-      </button>
+      </SubmitButton>
     </form>
   );
 }

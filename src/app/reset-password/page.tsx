@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isRecoverySession } from "@/lib/recovery";
@@ -75,12 +76,7 @@ export default async function ResetPasswordPage({
             className={inputClass}
           />
         </label>
-        <button
-          type="submit"
-          className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink"
-        >
-          Save new password
-        </button>
+        <SubmitButton className="mt-2" pendingLabel="Saving…">Save new password</SubmitButton>
         <p className="text-xs text-muted">
           You&apos;ll be signed out afterwards and can sign straight back in with the new
           password.

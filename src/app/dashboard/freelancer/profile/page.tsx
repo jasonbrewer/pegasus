@@ -252,7 +252,7 @@ export default async function EditFreelancerProfilePage({
         </Fieldset>
 
         <div className="flex items-center gap-4 pt-1">
-          <SubmitButton>Save profile</SubmitButton>
+          <SubmitButton pendingLabel="Saving…">Save profile</SubmitButton>
         </div>
 
         <p className="text-sm text-muted">

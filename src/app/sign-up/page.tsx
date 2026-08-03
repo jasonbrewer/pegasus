@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { signUp } from "@/app/auth/actions";
 import { parseInviteRef } from "@/lib/invite";
 
@@ -101,9 +102,9 @@ export default async function SignUpPage({
           />
         </label>
 
-        <button type="submit" className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink">
+        <SubmitButton className="mt-2" pendingLabel="Submitting…">
           {role === "freelancer" ? "Submit application" : "Create account"}
-        </button>
+        </SubmitButton>
 
         {role === "freelancer" && (
           // Said before signing up, so the pending state that follows is what

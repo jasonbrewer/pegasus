@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
@@ -169,12 +170,7 @@ export default async function JobsPage({
         </div>
 
         <div className="flex items-end">
-          <button
-            type="submit"
-            className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover sm:w-auto"
-          >
-            Search
-          </button>
+          <SubmitButton className="w-full sm:w-auto" pendingLabel="Searching…">Search</SubmitButton>
         </div>
         <p className="text-xs text-muted sm:col-span-4">
           Ticking &ldquo;Any distance&rdquo; ignores the mileage box. Remote roles always show,

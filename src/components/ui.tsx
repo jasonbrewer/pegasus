@@ -100,16 +100,10 @@ export function Card({
   );
 }
 
-export function SubmitButton({ children }: { children: ReactNode }) {
-  return (
-    <button
-      type="submit"
-      className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-hover"
-    >
-      {children}
-    </button>
-  );
-}
+// Re-exported so every existing `import { SubmitButton } from "@/components/ui"`
+// gets the pending-aware version. It lives in its own file because it needs
+// "use client" for useFormStatus, and this module is otherwise server-only.
+export { SubmitButton } from "./submit-button";
 
 export function ButtonLink({
   href,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { requestPasswordReset } from "@/app/auth/actions";
 import { inputClass } from "@/components/ui";
 
@@ -44,12 +45,7 @@ export default async function ForgotPasswordPage({
             Email
             <input type="email" name="email" required autoComplete="email" className={inputClass} />
           </label>
-          <button
-            type="submit"
-            className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink"
-          >
-            Send reset link
-          </button>
+          <SubmitButton className="mt-2" pendingLabel="Sending…">Send reset link</SubmitButton>
         </form>
       )}
 

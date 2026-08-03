@@ -17,6 +17,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import { SubmitButton as PendingButton } from "@/components/submit-button";
 import { ParticipationNotice } from "@/components/participation-notice";
 import { applyToJob, toggleSavedJob } from "../actions";
 
@@ -142,14 +143,14 @@ export default async function JobDetailPage({
                 <input type="hidden" name="job_id" value={job.id} />
                 <input type="hidden" name="return_to" value={`/jobs/${job.id}`} />
                 <input type="hidden" name="saved" value={isSaved ? "1" : "0"} />
-                <button
-                  type="submit"
-                  className={`inline-block rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted ${
-                    isSaved ? "border-strong" : "border-field"
-                  }`}
+                <PendingButton
+                  variant="secondary"
+                  size="sm"
+                  className={isSaved ? "border-strong" : ""}
+                  pendingLabel="…"
                 >
                   {isSaved ? "Unsave" : "Save"}
-                </button>
+                </PendingButton>
               </form>
             )}
             <ButtonLink href="/jobs">Back to jobs</ButtonLink>
@@ -246,7 +247,7 @@ export default async function JobDetailPage({
             </div>
 
             <div>
-              <SubmitButton>Send application</SubmitButton>
+              <SubmitButton pendingLabel="Sending…">Send application</SubmitButton>
             </div>
             <p className="text-xs text-muted">
               Applying is always free and unlimited. A message and your credits are all that

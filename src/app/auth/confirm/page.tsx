@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { confirmEmailLink } from "@/app/auth/actions";
 
 /**
@@ -87,12 +88,9 @@ export default async function ConfirmPage({
         <input type="hidden" name="token_hash" value={tokenHash ?? ""} />
         <input type="hidden" name="code" value={code ?? ""} />
         <input type="hidden" name="intent" value={isRecovery ? "recovery" : "email"} />
-        <button
-          type="submit"
-          className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink hover:bg-accent-hover"
-        >
+        <SubmitButton className="w-full" pendingLabel="Opening…">
           {isRecovery ? "Continue to set a new password" : "Confirm my email"}
-        </button>
+        </SubmitButton>
       </form>
 
       <p className="text-center text-sm text-muted">
