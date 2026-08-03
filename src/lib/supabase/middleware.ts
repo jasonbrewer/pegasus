@@ -4,11 +4,18 @@ import { NextResponse, type NextRequest } from "next/server";
 // Everything not listed here requires a session. Pegasus is a login-gated
 // marketplace: signed-out visitors get the landing page and the auth pages,
 // and nothing else.
-// /reset-password is deliberately NOT here: the emailed link goes through
-// /auth/callback first, which establishes a session, so by the time anyone
-// reaches it they are signed in. An expired link therefore bounces to sign-in
-// rather than showing a form that cannot work.
-const PUBLIC_PATHS = new Set(["/", "/sign-in", "/sign-up", "/forgot-password"]);
+// /reset-password is listed so the PAGE can handle a missing session itself.
+// It still requires one to show the form — it just sends someone whose link
+// expired back to /forgot-password saying so, rather than to a generic "sign
+// in to continue" that is useless to somebody who cannot remember their
+// password. Gating it here would make that message unreachable.
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+]);
 
 function isPublicPath(pathname: string) {
   if (PUBLIC_PATHS.has(pathname)) return true;

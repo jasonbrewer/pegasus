@@ -256,22 +256,52 @@ Settings**. Resend, Postmark and SES all work; all need a verified sending domai
 DNS records) before mail leaves reliably. Until that is done, treat recovery as working but
 unreliable — fine for testing, not for real members locked out of their accounts.
 
-### 3. The recovery email template
+### 3. The recovery email template — REQUIRED, and it must use `{{ .TokenHash }}`
 
-**Dashboard → Authentication → Email Templates → Reset Password.** The default is Supabase
-boilerplate that says "Supabase", not "Production Circles". Suggested replacement — the
-`{{ .ConfirmationURL }}` token is what routes through `/auth/callback`:
+**Dashboard → Authentication → Email Templates → Reset Password.** Two things are wrong with
+the default: it says "Supabase" rather than "Production Circles", and it uses
+`{{ .ConfirmationURL }}`, which is what produced the `otp_expired` bug.
+
+`{{ .ConfirmationURL }}` points at Supabase's own `/auth/v1/verify`, which **consumes the
+single-use token on the first GET**. Gmail's link scanners, corporate mail gateways, Slack and
+iMessage unfurlers and browser prefetch all issue that GET before a human clicks — so the token
+is spent, and the person clicking their own link is told it has expired. It also forces the
+whole flow into PKCE, which requires the code-verifier cookie set when the reset was requested,
+so opening the mail on a phone after requesting on a laptop cannot work.
+
+`{{ .TokenHash }}` has neither problem: nothing is consumed until our page POSTs it, and
+`verifyOtp()` needs nothing from the browser, so any device can open the link.
+
+Paste this in:
 
 ```html
 <h2>Reset your Production Circles password</h2>
 <p>Someone asked to reset the password for this address. If that was you, use the link below —
 it expires in an hour and can only be used once.</p>
-<p><a href="{{ .ConfirmationURL }}">Choose a new password</a></p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Choose a new password</a></p>
 <p>If it wasn't you, ignore this email. Your password stays as it is.</p>
 ```
 
-The in-app copy already matches this: the request page promises a link that "expires in an
-hour", and an expired or reused link bounces back to `/forgot-password` saying so.
+`{{ .SiteURL }}` is the Site URL from step 1, so set that correctly first.
+
+The in-app copy matches: the request page promises a link that "expires in an hour", the landing
+page explains that nothing happens until the button is pressed, and an expired or reused link
+lands on `/forgot-password` saying exactly that.
+
+### How the flow routes, once configured
+
+```
+/forgot-password  → resetPasswordForEmail()
+      ↓ email
+/auth/confirm?token_hash=…&type=recovery   ← GET only renders a button; consumes NOTHING
+      ↓ the user presses "Continue"  (POST)
+confirmEmailLink() → verifyOtp({ type, token_hash }) → session established
+      ↓
+/reset-password   → updateUser({ password }) → /dashboard, signed in
+```
+
+`/auth/callback` still exists for links already sitting in inboxes; it consumes nothing and
+forwards to `/auth/confirm` with the query intact.
 
 ## ZIP geocoding
 
