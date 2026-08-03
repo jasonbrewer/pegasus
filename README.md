@@ -234,9 +234,10 @@ user's point of view: the mail arrives, the link bounces to the site root, and n
 **Dashboard → Authentication → URL Configuration**
 
 - **Site URL**: `https://productioncircles.com`
-- **Redirect URLs**: add `https://productioncircles.com/auth/callback`
-  (plus `http://localhost:3000/auth/callback` for local work, and your Vercel preview pattern
-  if you test recovery on previews)
+- **Redirect URLs**: add `https://productioncircles.com/auth/reset`
+  (plus `http://localhost:3000/auth/reset` for local work, and your Vercel preview pattern if
+  you test recovery on previews). `/auth/callback` and `/auth/confirm` can stay listed — links
+  already sitting in inboxes point at them.
 
 Also set `NEXT_PUBLIC_SITE_URL=https://productioncircles.com` in Vercel — the reset link is built
 from it, and without it the link is built from whatever hostname the request arrived on.
@@ -278,7 +279,7 @@ Paste this in:
 <h2>Reset your Production Circles password</h2>
 <p>Someone asked to reset the password for this address. If that was you, use the link below —
 it expires in an hour and can only be used once.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Choose a new password</a></p>
+<p><a href="{{ .SiteURL }}/auth/reset?token_hash={{ .TokenHash }}">Choose a new password</a></p>
 <p>If it wasn't you, ignore this email. Your password stays as it is.</p>
 ```
 
@@ -288,20 +289,34 @@ The in-app copy matches: the request page promises a link that "expires in an ho
 page explains that nothing happens until the button is pressed, and an expired or reused link
 lands on `/forgot-password` saying exactly that.
 
+The link deliberately carries no `type`. It does not need one: the **path** decides that
+recovery is what is happening, and a path cannot be dropped on the way through Supabase's
+verify endpoint — which is what went wrong when `type` was a query parameter.
+
 ### How the flow routes, once configured
 
 ```
-/forgot-password  → resetPasswordForEmail()
+/forgot-password  → resetPasswordForEmail({ redirectTo: "<site>/auth/reset" })
       ↓ email
-/auth/confirm?token_hash=…&type=recovery   ← GET only renders a button; consumes NOTHING
-      ↓ the user presses "Continue"  (POST)
-confirmEmailLink() → verifyOtp({ type, token_hash }) → session established
+/auth/reset?token_hash=…        ← GET only renders a button; consumes NOTHING
+      ↓ the user presses "Continue"  (POST, intent=recovery fixed by the route)
+confirmEmailLink() → verifyOtp() → session + a short-lived recovery marker cookie
       ↓
-/reset-password   → updateUser({ password }) → /dashboard, signed in
+/reset-password   ← requires BOTH the session and that marker
+      ↓ updateUser({ password }), marker cleared, signed out
+/sign-in?password_changed=1
 ```
 
-`/auth/callback` still exists for links already sitting in inboxes; it consumes nothing and
-forwards to `/auth/confirm` with the query intact.
+`/auth/callback` and `/auth/confirm` still exist for links already sitting in inboxes. Neither
+consumes anything on GET, and both now treat a token with no `type` as recovery — recovery is
+the only mail this project sends, since signup confirmations are off.
+
+### Changing a password while signed in
+
+`/account/password`, linked from both profile editors. It asks for the current password and
+verifies it before writing. That is the difference from `/reset-password`: without a
+current-password check, any unattended logged-in browser would be an account takeover, which is
+also why `/reset-password` refuses to work without the recovery marker.
 
 ## ZIP geocoding
 

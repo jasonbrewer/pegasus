@@ -2,6 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import {
+  markRecoverySession,
+  isRecoverySession,
+  clearRecoverySession,
+} from "@/lib/recovery";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { parseInviteRef } from "@/lib/invite";
@@ -120,23 +125,17 @@ export async function requestPasswordReset(formData: FormData) {
   const origin = await siteOrigin();
   const supabase = await createClient();
 
-  // redirectTo carries NO query string of its own. Supabase embeds this value
-  // inside the /auth/v1/verify URL as the redirect_to parameter, and a nested
-  // "?next=..." there stops being part of redirect_to and becomes a parameter
-  // of the verify call instead — which is how the destination silently got
-  // lost. The landing page derives its own destination from `type` now.
+  // A dedicated PATH, and no query string of its own. Two separate lessons
+  // here: a nested "?next=..." inside redirect_to stops being part of
+  // redirect_to and becomes a parameter of the verify call, and Supabase's
+  // verify endpoint redirects back with only "?code=..." — it does not
+  // re-append `type`. So anything the destination needs to know has to live in
+  // the path, which survives both.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/confirm`,
+    redirectTo: `${origin}/auth/reset`,
   });
 
   redirect("/forgot-password?sent=1");
-}
-
-/** Same-origin relative paths only, so `next` can't become an open redirect. */
-function safeNextPath(value: FormDataEntryValue | null, fallback: string): string {
-  const next = (value as string | null) ?? "";
-  if (next.startsWith("/") && !next.startsWith("//")) return next;
-  return fallback;
 }
 
 /**
@@ -166,9 +165,11 @@ function safeNextPath(value: FormDataEntryValue | null, fallback: string): strin
 export async function confirmEmailLink(formData: FormData) {
   const tokenHash = ((formData.get("token_hash") as string) ?? "").trim();
   const code = ((formData.get("code") as string) ?? "").trim();
-  const type = ((formData.get("type") as string) ?? "email").trim();
-  const isRecovery = type === "recovery";
-  const next = safeNextPath(formData.get("next"), isRecovery ? "/reset-password" : "/dashboard");
+
+  // The intent comes from the FORM, set by the route the link landed on —
+  // never from a URL parameter, because that is the thing that gets dropped.
+  const isRecovery = ((formData.get("intent") as string) ?? "recovery") === "recovery";
+  const type: EmailOtpType = isRecovery ? "recovery" : "email";
 
   const fail = (message: string): never => {
     redirect(
@@ -179,10 +180,7 @@ export async function confirmEmailLink(formData: FormData) {
   const supabase = await createClient();
 
   if (tokenHash) {
-    const { error } = await supabase.auth.verifyOtp({
-      type: type as EmailOtpType,
-      token_hash: tokenHash,
-    });
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (error) fail(error.message);
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -197,7 +195,16 @@ export async function confirmEmailLink(formData: FormData) {
     fail("That link is missing its token — request a new one");
   }
 
-  redirect(next);
+  if (isRecovery) {
+    // A recovery session is indistinguishable from a normal one server-side,
+    // so mark it. /reset-password refuses to change a password without this,
+    // which is what stops it being a "change anyone's password" page for
+    // whoever happens to already be logged in.
+    await markRecoverySession();
+    redirect("/reset-password");
+  }
+
+  redirect("/dashboard");
 }
 
 /**
@@ -215,6 +222,15 @@ export async function updatePassword(formData: FormData) {
     redirect("/reset-password?error=" + encodeURIComponent(message));
   };
 
+  // Re-checked here, not only on the page, because a page check decides what
+  // gets rendered — this is the thing that actually writes.
+  if (!(await isRecoverySession())) {
+    redirect(
+      "/account/password?error=" +
+        encodeURIComponent("Confirm your current password to change it")
+    );
+  }
+
   if (password.length < 6) {
     fail("Your password must be at least 6 characters");
   }
@@ -230,9 +246,60 @@ export async function updatePassword(formData: FormData) {
     fail(error.message);
   }
 
-  // updateUser() leaves them signed in on the new password, so the
-  // dashboard is both the destination and the confirmation.
-  redirect("/dashboard");
+  await clearRecoverySession();
+
+  // Signed out on purpose: the new password has not been typed into a login
+  // form yet, and finishing on the sign-in page is what proves it works.
+  await supabase.auth.signOut();
+  redirect("/sign-in?password_changed=1");
+}
+
+/**
+ * The other way people change a password: already signed in, and they know the
+ * current one.
+ *
+ * Requires the current password, verified by signing in with it. Without that
+ * check an unattended logged-in browser is an account takeover — the same
+ * reason /reset-password insists on the recovery marker.
+ */
+export async function changePassword(formData: FormData) {
+  const current = (formData.get("current_password") as string) ?? "";
+  const password = (formData.get("password") as string) ?? "";
+  const confirm = (formData.get("confirm_password") as string) ?? "";
+
+  const fail = (message: string): never => {
+    redirect("/account/password?error=" + encodeURIComponent(message));
+  };
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    redirect("/sign-in?next=" + encodeURIComponent("/account/password"));
+  }
+
+  if (password.length < 6) fail("Your new password must be at least 6 characters");
+  if (password !== confirm) fail("Those passwords don't match");
+  if (password === current) fail("That is already your password");
+
+  // Re-authentication, checked before anything is written so a wrong current
+  // password cannot leave them signed out.
+  const { error: reauthError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: current,
+  });
+
+  if (reauthError) {
+    fail("That current password isn't right");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) fail(error.message);
+
+  redirect("/account/password?changed=1");
 }
 
 export async function signOut() {

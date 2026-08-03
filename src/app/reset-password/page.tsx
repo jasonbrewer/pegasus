@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isRecoverySession } from "@/lib/recovery";
 import { updatePassword } from "@/app/auth/actions";
 import { inputClass } from "@/components/ui";
 
 /**
- * Reached from the emailed link, which lands on /auth/callback first — that
- * exchanges the code for a session, so by the time anyone is here they are
- * signed in as the account being recovered.
+ * Set a new password, reached only through a reset link.
  *
- * A stale or expired link therefore shows up as "no session", not as a broken
- * form, and the message says which.
+ * Two conditions, both required:
+ *
+ *   a session          — established by /auth/reset exchanging the token
+ *   the recovery mark  — set in that same exchange
+ *
+ * The second is what keeps this from being a page where anyone already signed
+ * in can change their password without knowing the old one. Someone logged in
+ * normally is sent to /account/password instead, which asks for the current
+ * password first.
  */
 export default async function ResetPasswordPage({
   searchParams,
@@ -31,11 +37,15 @@ export default async function ResetPasswordPage({
     );
   }
 
+  if (!(await isRecoverySession())) {
+    redirect("/account/password");
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <div>
         <h1 className="text-2xl font-semibold">Choose a new password</h1>
-        <p className="mt-1 text-sm text-muted">Signed in as {user.email}.</p>
+        <p className="mt-1 text-sm text-muted">Resetting the password for {user.email}.</p>
       </div>
 
       {params.error && (
@@ -71,11 +81,15 @@ export default async function ResetPasswordPage({
         >
           Save new password
         </button>
+        <p className="text-xs text-muted">
+          You&apos;ll be signed out afterwards and can sign straight back in with the new
+          password.
+        </p>
       </form>
 
       <p className="text-center text-sm text-muted">
-        <Link href="/dashboard" className="underline">
-          Skip for now
+        <Link href="/sign-in" className="underline">
+          Back to sign in
         </Link>
       </p>
     </main>
