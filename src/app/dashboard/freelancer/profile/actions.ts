@@ -55,22 +55,6 @@ export async function updateFreelancerProfile(formData: FormData) {
     fail(INVALID_ZIP_MESSAGE);
   }
 
-  const dayRateRaw = (formData.get("day_rate") as string)?.trim();
-  let dayRateCents: number | null = null;
-  if (dayRateRaw) {
-    const dollars = Number(dayRateRaw);
-    if (!Number.isFinite(dollars) || dollars < 0) {
-      fail("Enter a valid day rate");
-    }
-    dayRateCents = Math.round(dollars * 100);
-  }
-
-  const radiusRaw = (formData.get("travel_radius_miles") as string)?.trim();
-  const radius = Number(radiusRaw);
-  if (!Number.isInteger(radius) || radius < 0 || radius > 3000) {
-    fail("Travel radius must be a whole number between 0 and 3000 miles");
-  }
-
   const selectedRoles = formData
     .getAll("roles")
     .map(String)
@@ -128,11 +112,14 @@ export async function updateFreelancerProfile(formData: FormData) {
   const { error: freelancerError } = await supabase
     .from("freelancer_profiles")
     .update({
+      // 2.2 — day_rate_cents and travel_radius_miles are deliberately absent
+      // from this update, not set to null. The fields are gone from the form,
+      // so writing them would wipe whatever is already stored — and
+      // travel_radius_miles is still read as the default search radius on the
+      // job browse page.
       bio: optionalText(formData.get("bio")),
       credits_html: creditsHtml,
-      day_rate_cents: dayRateCents,
       home_zip: centroid.zip,
-      travel_radius_miles: radius,
       reel_url: optionalUrl(formData.get("reel_url"), "Reel URL"),
       portfolio_url: optionalUrl(formData.get("portfolio_url"), "Portfolio URL"),
     })

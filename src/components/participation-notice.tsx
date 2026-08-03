@@ -1,4 +1,5 @@
 import { participationNotice, type Viewer } from "@/lib/access";
+import { moderatorMailto } from "@/lib/support";
 
 /**
  * Explains a pending or blocked account to its owner. Renders nothing for an
@@ -24,6 +25,17 @@ export function ParticipationNotice({
     <div className={`mb-6 rounded-lg border px-4 py-3 ${tone}`}>
       <p className="text-sm font-medium">{notice.title}</p>
       <p className="mt-1 text-sm leading-relaxed opacity-90">{notice.body}</p>
+      {/* 2.5 — these notices already said "get in touch"; this is the how. */}
+      <p className="mt-2 text-sm">
+        <a
+          href={moderatorMailto(
+            blocked ? "My account is blocked" : "Question about my application to join"
+          )}
+          className="underline"
+        >
+          Contact the moderator
+        </a>
+      </p>
     </div>
   );
 }

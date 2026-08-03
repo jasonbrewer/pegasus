@@ -47,7 +47,7 @@ export default async function EditFreelancerProfilePage({
 
   const { data: freelancer } = await supabase
     .from("freelancer_profiles")
-    .select("bio, credits_html, day_rate_cents, home_zip, travel_radius_miles, reel_url, portfolio_url")
+    .select("bio, credits_html, home_zip, reel_url, portfolio_url")
     .eq("profile_id", user.id)
     .single();
 
@@ -130,7 +130,7 @@ export default async function EditFreelancerProfilePage({
         </Field>
 
         <Field
-          label="Credits"
+          label="Credits or résumé"
           hint="Paste your credits or resume straight from a document — formatting is kept."
         >
           <RichTextEditor
@@ -181,8 +181,7 @@ export default async function EditFreelancerProfilePage({
               <input
                 name="phone"
                 type="tel"
-                placeholder="(804) 555-0148"
-                defaultValue={contact?.phone ?? ""}
+                  defaultValue={contact?.phone ?? ""}
                 className={inputClass}
               />
             </label>
@@ -207,35 +206,10 @@ export default async function EditFreelancerProfilePage({
             name="home_zip"
             required
             inputMode="numeric"
-            placeholder="23220"
             defaultValue={freelancer?.home_zip ?? ""}
             className={inputClass}
           />
         </Field>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Day rate (USD)" hint="Leave blank to keep it private.">
-            <input
-              name="day_rate"
-              inputMode="decimal"
-              placeholder="750"
-              defaultValue={
-                freelancer?.day_rate_cents != null ? String(freelancer.day_rate_cents / 100) : ""
-              }
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label="Travel radius (miles)" hint="How far you'll travel for on-location work.">
-            <input
-              name="travel_radius_miles"
-              required
-              inputMode="numeric"
-              defaultValue={String(freelancer?.travel_radius_miles ?? 25)}
-              className={inputClass}
-            />
-          </Field>
-        </div>
 
         <Field label="Reel URL">
           <input

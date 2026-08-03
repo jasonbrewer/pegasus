@@ -104,17 +104,80 @@ export async function applyToJob(formData: FormData) {
     credits_html: creditsHtml,
   });
 
-  // Applying twice is a no-op, not a failure: the unique constraint is what
-  // enforces "one application per freelancer per job", and a duplicate submit
-  // (double click, back button, stale tab) should land on the same "Applied"
-  // state rather than an error page.
-  if (error && error.code !== UNIQUE_VIOLATION) {
+  // A row already exists for this (job, freelancer). Two ways that happens:
+  // they withdrew and are coming back, or they double-submitted.
+  //
+  // 2.3 — the unique constraint is deliberately kept, so re-applying
+  // reactivates the one row rather than inserting a second. reapply_to_job()
+  // returns 0 when the existing application was never withdrawn, which is the
+  // double-submit case: land on the same "applied" state rather than an error,
+  // exactly as before, and without overwriting what they already sent.
+  if (error?.code === UNIQUE_VIOLATION) {
+    const { error: reapplyError } = await supabase.rpc("reapply_to_job", {
+      p_job_id: jobId,
+      p_cover_note: message,
+      p_credits_html: creditsHtml,
+    });
+
+    if (reapplyError) {
+      redirect(withParam(returnTo, "error", reapplyError.message));
+    }
+  } else if (error) {
     redirect(withParam(returnTo, "error", error.message));
   }
 
   revalidatePath("/jobs");
   revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/dashboard/freelancer");
   redirect(withParam(returnTo, "applied", jobId));
+}
+
+/**
+ * 2.3 — withdraw an application.
+ *
+ * A plain UPDATE, not an RPC, because the database can express this rule on
+ * its own: the row-level policy pins it to the applicant, and the column-level
+ * grant limits the write to withdrawn_at. The policy's WITH CHECK also makes
+ * it one-way — clearing withdrawn_at is refused, so coming back has to go
+ * through applyToJob, which re-checks that the account may still participate.
+ *
+ * Nothing is deleted. The employer stops seeing the applicant; the applicant
+ * keeps the row on their dashboard, marked withdrawn.
+ */
+export async function withdrawApplication(formData: FormData) {
+  const jobId = formData.get("job_id") as string;
+  const returnTo = safeReturnTo(formData.get("return_to"));
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/sign-in?next=${encodeURIComponent(returnTo)}`);
+  }
+
+  if (!jobId) {
+    redirect(withParam(returnTo, "error", "Missing job"));
+  }
+
+  // The freelancer_id filter is belt-and-braces — the policy already scopes
+  // this to the caller, so a tampered job_id still touches nobody else's row.
+  const { error } = await supabase
+    .from("applications")
+    .update({ withdrawn_at: new Date().toISOString() })
+    .eq("job_id", jobId)
+    .eq("freelancer_id", user.id)
+    .is("withdrawn_at", null);
+
+  if (error) {
+    redirect(withParam(returnTo, "error", error.message));
+  }
+
+  revalidatePath("/dashboard/freelancer");
+  revalidatePath(`/jobs/${jobId}`);
+  redirect(withParam(returnTo, "withdrawn", jobId));
 }
 
 /**

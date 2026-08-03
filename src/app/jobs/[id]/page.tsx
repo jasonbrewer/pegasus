@@ -70,7 +70,7 @@ export default async function JobDetailPage({
         .maybeSingle(),
       supabase
         .from("applications")
-        .select("id, created_at")
+        .select("id, created_at, withdrawn_at")
         .eq("job_id", id)
         .eq("freelancer_id", user.id)
         .maybeSingle(),
@@ -107,7 +107,10 @@ export default async function JobDetailPage({
   // policy refuses them. Showing the form anyway would just produce an error.
   const canApply = profile?.status === "approved";
   const isOwner = user.id === job.employer_id;
-  const hasApplied = Boolean(existing) || query.applied === id;
+  // 2.3 — a withdrawn application does not count as applied, so the form
+  // comes back. Submitting it reactivates the same row rather than inserting
+  // a second one, which is what keeps the unique constraint happy.
+  const hasApplied = existing?.withdrawn_at === null || query.applied === id;
   const isSaved = Boolean(savedRow);
   const location = place ? [place.city, place.state].filter(Boolean).join(", ") : null;
 
@@ -220,7 +223,7 @@ export default async function JobDetailPage({
             </label>
 
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">Credits</span>
+              <span className="text-sm font-medium">Credits or résumé</span>
               <RichTextEditor
                 name="credits_html"
                 placeholder="Paste your credits here — formatting is kept…"

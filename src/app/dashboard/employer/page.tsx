@@ -52,7 +52,13 @@ export default async function EmployerDashboardPage() {
     : { data: [] };
   const titleByJob = new Map((titleRows ?? []).map((t) => [t.job_id, t]));
   const { data: applicationRows } = jobIds.length
-    ? await supabase.from("applications").select("job_id").in("job_id", jobIds)
+    ? await supabase
+        .from("applications")
+        .select("job_id")
+        .in("job_id", jobIds)
+        // 2.3 — withdrawn applicants drop out of the count, matching what the
+        // applicant list itself now shows.
+        .is("withdrawn_at", null)
     : { data: [] };
 
   const applicantCounts = new Map<string, number>();

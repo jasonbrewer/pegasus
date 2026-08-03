@@ -121,7 +121,7 @@ export function RichTextEditor({
           suppressContentEditableWarning
           role="textbox"
           aria-multiline="true"
-          aria-label="Credits"
+          aria-label="Credits or résumé"
           onInput={sync}
           onBlur={sync}
           onPaste={onPaste}

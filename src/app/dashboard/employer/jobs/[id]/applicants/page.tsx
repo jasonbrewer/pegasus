@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
-import { formatRate, formatDistance } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 import { PageShell, PageHeader, Badge, Card } from "@/components/ui";
 
 export default async function JobApplicantsPage({
@@ -57,7 +57,7 @@ export default async function JobApplicantsPage({
   const { data: freelancers } = ids.length
     ? await supabase
         .from("freelancer_profiles")
-        .select("profile_id, home_zip, day_rate_cents")
+        .select("profile_id, home_zip")
         .in("profile_id", ids)
     : { data: [] };
 
@@ -122,7 +122,6 @@ export default async function JobApplicantsPage({
               const place = freelancer ? placeByZip.get(freelancer.home_zip) : null;
               const roleSlugs = rolesById.get(applicant.freelancer_id) ?? [];
               const distance = formatDistance(applicant.distance_miles);
-              const rate = formatRate(freelancer?.day_rate_cents ?? null);
 
               return (
                 <li key={applicant.application_id}>
@@ -144,7 +143,6 @@ export default async function JobApplicantsPage({
 
                     <p className="mt-0.5 text-sm text-secondary">
                       {place ?? "Location not set"}
-                      {rate && <span className="text-muted"> · {rate}</span>}
                     </p>
 
                     {roleSlugs.length > 0 && (
@@ -171,7 +169,7 @@ export default async function JobApplicantsPage({
                     {applicant.credits_html && (
                       <div className="mt-3">
                         <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
-                          Credits
+                          Credits or résumé
                         </p>
                         {/* Sanitized server-side at apply time (src/lib/sanitize.ts).
                             Never rendered straight from user input. */}

@@ -94,7 +94,6 @@ export default async function EditEmployerProfilePage({
           <input
             name="home_zip"
             inputMode="numeric"
-            placeholder="23220"
             defaultValue={employer?.home_zip ?? ""}
             className={inputClass}
           />

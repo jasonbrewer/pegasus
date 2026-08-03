@@ -231,6 +231,9 @@ export interface Database {
           // Null = Applied, non-null = Viewed. Written only by
           // mark_applicants_viewed().
           first_viewed_at: string | null;
+          // Null = active. Set by the applicant withdrawing; cleared only by
+          // reapply_to_job(). The one column the client may UPDATE.
+          withdrawn_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -238,7 +241,9 @@ export interface Database {
           job_id: string;
           freelancer_id: string;
         };
-        Update: Partial<Database["public"]["Tables"]["applications"]["Row"]>;
+        // withdrawn_at is the only column with a client UPDATE grant
+        // (migration 20260801000011).
+        Update: Partial<Pick<Database["public"]["Tables"]["applications"]["Row"], "withdrawn_at">>;
         Relationships: [];
       };
       saved_jobs: {
@@ -307,6 +312,11 @@ export interface Database {
       admin_set_account_status: {
         Args: { p_profile_id: string; p_status: AccountStatus };
         Returns: AccountStatus;
+      };
+      /** Reactivates the caller's own withdrawn application. Rows reactivated. */
+      reapply_to_job: {
+        Args: { p_job_id: string; p_cover_note: string | null; p_credits_html: string | null };
+        Returns: number;
       };
       current_user_is_admin: {
         Args: Record<string, never>;

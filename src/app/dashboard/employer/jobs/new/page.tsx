@@ -90,7 +90,6 @@ export default async function NewJobPage({
           <input
             name="title"
             required
-            placeholder="Shark Week promo"
             className={inputClass}
           />
         </Field>
@@ -128,7 +127,6 @@ export default async function NewJobPage({
             name="location_zip"
             required
             inputMode="numeric"
-            placeholder="23220"
             className={inputClass}
           />
         </Field>
@@ -183,7 +181,7 @@ export default async function NewJobPage({
                 placeholder="you@company.com"
                 className={inputClass}
               />
-              <input name="contact_phone" type="tel" placeholder="(804) 555-0100" className={inputClass} />
+              <input name="contact_phone" type="tel" className={inputClass} />
             </div>
           </div>
 
