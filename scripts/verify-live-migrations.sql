@@ -1,5 +1,5 @@
 -- Read-only audit: does the live database actually contain everything
--- migrations 20260801000004 .. 20260801000011 claim to create?
+-- migrations 20260801000004 .. 20260801000012 claim to create?
 --
 -- Run it in the Supabase SQL editor. It writes nothing and returns one row per
 -- expected object, MISSING rows first.
@@ -48,7 +48,8 @@ begin
     ('000010','profiles','status'),
     ('000010','profiles','is_admin'),
     ('000010','profiles','invited_by'),
-    ('000011','applications','withdrawn_at')
+    ('000011','applications','withdrawn_at'),
+    ('000012','profiles','approved_at')
   ) as m(migration, tbl, col);
 
   -- ---- columns that must be GONE ------------------------------------------
@@ -265,6 +266,28 @@ begin
   select '000011', 'grant UPDATE', 'authenticated -> applications.withdrawn_at',
          case when has_column_privilege('authenticated', 'public.applications', 'withdrawn_at', 'UPDATE')
               then 'ok' else 'MISSING (withdrawing is broken)' end;
+
+  -- 000012: approved_at must not be forgeable, and the signup trigger must
+  -- still seed the contact rows.
+  insert into migration_audit
+  select '000012', 'grant absent', 'authenticated -> profiles.approved_at UPDATE',
+         case when has_column_privilege('authenticated', 'public.profiles', 'approved_at', 'UPDATE')
+              then 'MISSING (the approval banner is forgeable)' else 'ok' end;
+
+  insert into migration_audit
+  select '000012', 'function body', 'handle_new_user -> seeds ' || m.needle,
+         case when to_regprocedure('public.handle_new_user()') is null then 'MISSING (no function)'
+              when pg_get_functiondef(to_regprocedure('public.handle_new_user()')) like '%' || m.needle || '%'
+              then 'ok' else 'MISSING' end
+  from (values ('freelancer_contacts'), ('employer_billing')) as m(needle);
+
+  insert into migration_audit
+  select '000012', 'function body', 'admin_set_account_status -> records approved_at',
+         case when to_regprocedure('public.admin_set_account_status(uuid, public.account_status)') is null
+                then 'MISSING (no function)'
+              when pg_get_functiondef(to_regprocedure('public.admin_set_account_status(uuid, public.account_status)'))
+                   like '%approved_at%'
+              then 'ok' else 'MISSING' end;
 
   insert into migration_audit
   select '000011', 'function returns', 'job_applicants -> hides withdrawn',

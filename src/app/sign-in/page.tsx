@@ -40,6 +40,12 @@ export default async function SignInPage({
           />
         </label>
 
+        <p className="text-right text-sm">
+          <Link href="/forgot-password" className="text-muted underline hover:text-content">
+            Forgot your password?
+          </Link>
+        </p>
+
         <button type="submit" className="mt-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink">
           Sign in
         </button>

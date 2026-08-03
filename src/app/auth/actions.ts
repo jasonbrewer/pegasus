@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { parseInviteRef } from "@/lib/invite";
@@ -80,6 +81,83 @@ export async function signIn(formData: FormData) {
   }
 
   redirect(next);
+}
+
+/**
+ * Where the emailed reset link comes back to. Prefers NEXT_PUBLIC_SITE_URL so
+ * a link mailed from production always points at production; falls back to the
+ * request's own origin for local and preview deploys.
+ */
+async function siteOrigin(): Promise<string> {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  if (!host) return "";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
+ * 3.2 — send the recovery email.
+ *
+ * The response is identical whether or not that address has an account, and
+ * Supabase's own error is swallowed for the same reason: this endpoint must
+ * not become a way to find out who is a member of a members-only site. The
+ * only errors surfaced are ones that are true regardless of the address.
+ *
+ * The link lands on /auth/callback, which exchanges the code for a session and
+ * forwards to /reset-password.
+ */
+export async function requestPasswordReset(formData: FormData) {
+  const email = ((formData.get("email") as string) ?? "").trim();
+
+  if (!email) {
+    redirect("/forgot-password?error=" + encodeURIComponent("Enter your email address"));
+  }
+
+  const origin = await siteOrigin();
+  const supabase = await createClient();
+
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
+  });
+
+  redirect("/forgot-password?sent=1");
+}
+
+/**
+ * 3.2 — set the new password.
+ *
+ * Works because the recovery link already established a session; there is no
+ * token to pass around by hand. Supabase enforces its own password rules on
+ * top of the length check here.
+ */
+export async function updatePassword(formData: FormData) {
+  const password = (formData.get("password") as string) ?? "";
+  const confirm = (formData.get("confirm_password") as string) ?? "";
+
+  const fail = (message: string): never => {
+    redirect("/reset-password?error=" + encodeURIComponent(message));
+  };
+
+  if (password.length < 6) {
+    fail("Your password must be at least 6 characters");
+  }
+
+  if (password !== confirm) {
+    fail("Those passwords don't match");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    fail(error.message);
+  }
+
+  redirect("/dashboard?password_updated=1");
 }
 
 export async function signOut() {

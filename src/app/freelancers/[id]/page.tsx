@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_BY_SLUG } from "@/lib/roles";
 import { signedAvatarUrl } from "@/lib/avatar";
+import { formatPhone, telHref } from "@/lib/phone";
 import { parseVideoUrl } from "@/lib/video";
 import {
   PageShell,
@@ -190,8 +191,8 @@ export default async function FreelancerProfilePage({
                 label="Phone"
                 value={
                   contact?.phone ? (
-                    <a href={`tel:${contact.phone}`} className="underline">
-                      {contact.phone}
+                    <a href={telHref(contact.phone)} className="underline">
+                      {formatPhone(contact.phone)}
                     </a>
                   ) : null
                 }

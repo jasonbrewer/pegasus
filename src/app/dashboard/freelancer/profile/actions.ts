@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { ROLES } from "@/lib/roles";
 import { prepareCredits } from "@/lib/sanitize";
+import { normalizePhone } from "@/lib/phone";
 import { isHttpUrl } from "@/lib/video";
 import {
   AVATAR_BUCKET,
@@ -141,7 +142,9 @@ export async function updateFreelancerProfile(formData: FormData) {
   const { error: contactError } = await supabase.from("freelancer_contacts").upsert(
     {
       profile_id: user.id,
-      phone: optionalText(formData.get("phone")),
+      // 3.5 — stored in the same shape it is displayed in, so the two
+      //       never drift. An unrecognised number is stored as typed.
+      phone: normalizePhone(formData.get("phone")),
       contact_email: contactEmail,
     },
     { onConflict: "profile_id" }
