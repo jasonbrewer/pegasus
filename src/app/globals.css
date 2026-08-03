@@ -57,6 +57,18 @@
   --success-edge: #bbf7d0;
   --success-ink: #15803d;
 
+  /* 5.1 — the triage star's four states. These are NOT the status tints
+     above: a flag carries no meaning the app assigns, so reusing --danger
+     would say "rejected" when the employer only meant "red". They are their
+     own scale, and each one clears 3:1 against --surface (WCAG 1.4.11,
+     non-text contrast) in the theme it belongs to. The light yellow is a deep
+     gold for that reason — a bright #eab308 star manages 1.9:1 on white and
+     vanishes. */
+  --flag-yellow: #a16207;
+  --flag-green: #15803d;
+  --flag-blue: #2563eb;
+  --flag-red: #dc2626;
+
   color-scheme: light;
 }
 
@@ -95,6 +107,14 @@
     --success: #102b1d;
     --success-edge: #245c3c;
     --success-ink: #6ee7b7;
+
+    /* Same four flags, lifted for the dark surface (6.6:1 – 11:1 on
+       --surface). A star that reads as gold on white has to be brighter here
+       to read as gold at all. */
+    --flag-yellow: #fbbf24;
+    --flag-green: #4ade80;
+    --flag-blue: #60a5fa;
+    --flag-red: #f87171;
 
     /* Makes native controls — select, date inputs, scrollbars, the caret —
        render dark. Without it the form widgets stay light-on-light. */
@@ -136,6 +156,11 @@
   --color-success: var(--success);
   --color-success-edge: var(--success-edge);
   --color-success-ink: var(--success-ink);
+
+  --color-flag-yellow: var(--flag-yellow);
+  --color-flag-green: var(--flag-green);
+  --color-flag-blue: var(--flag-blue);
+  --color-flag-red: var(--flag-red);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
