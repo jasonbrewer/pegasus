@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
+import { normalizePhone } from "@/lib/phone";
+import { isPlausibleLinkedInUrl } from "@/lib/format";
 
 const EDIT_PATH = "/dashboard/employer/profile";
 
@@ -33,10 +35,39 @@ export async function updateEmployerProfile(formData: FormData) {
     fail("Company name is required");
   }
 
+  // 4.1 — the company contact. Required, unlike everything else on this form.
+  //
+  // The contact NAME is fullName above: profiles.full_name is already the
+  // person behind the account and already shows on the dashboard as "Hiring
+  // contact". A second name field would be the same fact stored twice.
+  const contactEmail = ((formData.get("contact_email") as string) ?? "").trim();
+  const contactPhone = ((formData.get("contact_phone") as string) ?? "").trim();
+
+  if (!contactEmail) {
+    fail("A contact email is required");
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+    fail("Enter a valid contact email");
+  }
+
+  if (!contactPhone) {
+    fail("A contact phone number is required");
+  }
+
+  // 4.2 — optional, and only shape-checked. See isPlausibleLinkedInUrl.
+  const linkedinUrl = ((formData.get("linkedin_url") as string) ?? "").trim() || null;
+
+  if (linkedinUrl && !isPlausibleLinkedInUrl(linkedinUrl)) {
+    fail("That doesn't look like a LinkedIn URL — it should start with https://linkedin.com/");
+  }
+
+  // Billing is a different question from "who do we call", so it stays
+  // optional; blank means invoices go to the contact email.
   const billingEmail = ((formData.get("billing_email") as string) ?? "").trim() || null;
 
   if (billingEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingEmail)) {
-    fail("Enter a valid contact email");
+    fail("Enter a valid billing email");
   }
 
   // Employer location is optional. If one is supplied it must resolve, so a
@@ -80,6 +111,24 @@ export async function updateEmployerProfile(formData: FormData) {
 
   if (employerError) {
     fail(employerError.message);
+  }
+
+  // Contact details live in their own owner-only table for the same reason
+  // billing does: employer_profiles is readable by every participating member,
+  // and RLS cannot hide one column of a row somebody may read.
+  const { error: contactError } = await supabase.from("employer_contacts").upsert(
+    {
+      profile_id: user.id,
+      contact_email: contactEmail,
+      // 3.5 — stored in the shape it is displayed in.
+      contact_phone: normalizePhone(contactPhone),
+      linkedin_url: linkedinUrl,
+    },
+    { onConflict: "profile_id" }
+  );
+
+  if (contactError) {
+    fail(contactError.message);
   }
 
   // Billing lives in its own owner-only table so it isn't readable by every

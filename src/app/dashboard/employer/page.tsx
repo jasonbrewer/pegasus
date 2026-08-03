@@ -6,6 +6,7 @@ import { DeleteJobButton } from "@/components/delete-job-button";
 import { PageShell, PageHeader, Badge, Card, ButtonLink, DetailRow } from "@/components/ui";
 import { InviteSection } from "@/components/invite-section";
 import { ParticipationNotice } from "@/components/participation-notice";
+import { formatPhone } from "@/lib/phone";
 
 export default async function EmployerDashboardPage() {
   const supabase = await createClient();
@@ -34,6 +35,17 @@ export default async function EmployerDashboardPage() {
     .select("billing_email")
     .eq("profile_id", user.id)
     .maybeSingle();
+
+  // 4.1 — owner-only, so this read returns nothing for anyone but the employer.
+  const { data: contact } = await supabase
+    .from("employer_contacts")
+    .select("contact_phone, contact_email, linkedin_url")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  // Existing employers predate these fields being required, so nudge rather
+  // than block — the profile form is where the requirement bites.
+  const contactIncomplete = !contact?.contact_email || !contact?.contact_phone;
 
   const { data: jobs } = await supabase
     .from("jobs")
@@ -77,6 +89,16 @@ export default async function EmployerDashboardPage() {
       {/* 9.4 — a blocked employer sees why their postings vanished. */}
       <ParticipationNotice viewer={profile} />
 
+      {contactIncomplete && (
+        <p className="mb-6 rounded-md bg-notice px-3 py-2 text-sm text-notice-ink">
+          Your company profile is missing contact details.{" "}
+          <Link href="/dashboard/employer/profile" className="underline">
+            Add a contact email and phone
+          </Link>{" "}
+          so we can reach you about your postings.
+        </p>
+      )}
+
       {/* 7.1 — referral is the main growth channel for a login-walled
           product, so this sits above the fold, not in a footer. */}
       <div className="mb-6">
@@ -86,7 +108,15 @@ export default async function EmployerDashboardPage() {
       <Card>
         <dl>
           <DetailRow label="Hiring contact" value={profile?.full_name} />
-          <DetailRow label="Billing email" value={billing?.billing_email ?? "Not set"} />
+          <DetailRow label="Contact email" value={contact?.contact_email ?? "Not set"} />
+          <DetailRow
+            label="Contact phone"
+            value={formatPhone(contact?.contact_phone) ?? "Not set"}
+          />
+          <DetailRow
+            label="Billing email"
+            value={billing?.billing_email ?? "Same as contact email"}
+          />
           <DetailRow label="Jobs posted" value={String(jobs?.length ?? 0)} />
         </dl>
       </Card>

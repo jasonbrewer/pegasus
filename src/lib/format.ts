@@ -40,6 +40,19 @@ export function formatTimestamp(value: string) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/**
+ * 4.2 — is this plausibly a LinkedIn profile or company page?
+ *
+ * Deliberately loose. It accepts the regional subdomains (uk.linkedin.com),
+ * /in/, /company/ and /school/ paths, and anything after them, because the
+ * cost of refusing somebody's real URL is higher than the cost of storing an
+ * odd one. It exists to catch a pasted Twitter link or a bare handle, not to
+ * prove the page exists.
+ */
+export function isPlausibleLinkedInUrl(value: string): boolean {
+  return /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/[^\s]+$/i.test(value.trim());
+}
+
 /** Remote roles come back with a null distance and are labelled, not measured. */
 export function formatDistance(miles: number | null) {
   if (miles == null) return null;

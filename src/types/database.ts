@@ -174,6 +174,21 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["employer_billing"]["Row"]>;
         Relationships: [];
       };
+      employer_contacts: {
+        Row: {
+          profile_id: string;
+          contact_phone: string | null;
+          contact_email: string | null;
+          linkedin_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["employer_contacts"]["Row"]> & {
+          profile_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["employer_contacts"]["Row"]>;
+        Relationships: [];
+      };
       freelancer_contacts: {
         Row: {
           profile_id: string;
