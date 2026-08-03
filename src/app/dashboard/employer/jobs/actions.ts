@@ -9,6 +9,16 @@ import type { RateType } from "@/types/database";
 
 const NEW_JOB_PATH = "/dashboard/employer/jobs/new";
 
+/**
+ * How recently an identical posting counts as the same submission.
+ *
+ * Wide enough to cover a slow round trip and an impatient second click; far
+ * too short to interfere with genuinely re-posting the same job next week.
+ * This is a safety net for a specific accident, not a rule about how often
+ * someone may post.
+ */
+const DUPLICATE_WINDOW_SECONDS = 30;
+
 function fail(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
@@ -75,6 +85,57 @@ export async function createJob(formData: FormData) {
   const endDate = (formData.get("end_date") as string) || null;
   if (startDate && endDate && endDate < startDate) {
     fail(NEW_JOB_PATH, "End date cannot be before the start date");
+  }
+
+  // --- duplicate guard -----------------------------------------------------
+  //
+  // The UI disables the button while the first request is in flight, which is
+  // the real fix. This catches what that cannot: a second POST that was
+  // already on the wire, a resubmitted form after a back-button, a retry from
+  // a flaky connection.
+  //
+  // Matched on the fields that make a posting what it is. Two postings with
+  // the same employer, role, company, description, location, rate and dates,
+  // seconds apart, are one posting submitted twice — nobody deliberately
+  // creates that. The title is checked too, below, since it lives in its own
+  // table.
+  //
+  // No schema change: this is a SELECT before the INSERT. A truly simultaneous
+  // pair could still slip between the two, but that needs two clicks landing
+  // in the same few milliseconds, which is exactly what the disabled button
+  // prevents.
+  const since = new Date(Date.now() - DUPLICATE_WINDOW_SECONDS * 1000).toISOString();
+
+  const { data: recent } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("employer_id", user.id)
+    .eq("role_slug", roleSlug)
+    .eq("company_network", companyNetwork)
+    .eq("description", description)
+    .eq("location_zip", centroid.zip)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (recent && recent.length > 0) {
+    // Confirm the title matches as well — same brief, different project name
+    // is a different posting.
+    const { data: sameTitle } = await supabase
+      .from("job_titles")
+      .select("job_id")
+      .in("job_id", recent.map((row) => row.id))
+      .eq("title", title)
+      .limit(1);
+
+    if (sameTitle && sameTitle.length > 0) {
+      // Land exactly where a successful post lands, so a double click is
+      // indistinguishable from a single one. Nothing is created, nothing is
+      // reported as an error — because from the employer's point of view
+      // their job did get posted.
+      revalidatePath("/dashboard/employer");
+      redirect("/dashboard/employer");
+    }
   }
 
   // --- write ---------------------------------------------------------------

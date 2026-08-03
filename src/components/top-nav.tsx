@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { NavLink } from "./nav-link";
+import { SubmitButton } from "./submit-button";
 
 /**
  * Persistent top bar, rendered from the root layout so it appears on every
@@ -78,12 +79,14 @@ export async function TopNav() {
         <div className="ml-auto flex items-center gap-4">
           {user ? (
             <form action={signOut}>
-              <button
-                type="submit"
-                className="whitespace-nowrap rounded-md border border-field px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+              <SubmitButton
+                variant="secondary"
+                size="sm"
+                className="whitespace-nowrap"
+                pendingLabel="Logging out…"
               >
                 Log out
-              </button>
+              </SubmitButton>
             </form>
           ) : (
             <>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SubmitButton } from "@/components/submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { changePassword } from "@/app/auth/actions";
 import {
@@ -77,12 +78,7 @@ export default async function AccountPasswordPage({
             className={inputClass}
           />
         </label>
-        <button
-          type="submit"
-          className="mt-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink"
-        >
-          Change password
-        </button>
+        <SubmitButton className="mt-2" pendingLabel="Changing…">Change password</SubmitButton>
       </form>
 
       <p className="mt-6 text-sm text-muted">

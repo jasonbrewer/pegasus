@@ -197,7 +197,7 @@ export default async function NewJobPage({
         </Fieldset>
 
         <div className="flex items-center gap-4 pt-1">
-          <SubmitButton>Post job</SubmitButton>
+          <SubmitButton pendingLabel="Posting…">Post job</SubmitButton>
           <ButtonLink href="/dashboard/employer">Cancel</ButtonLink>
         </div>
       </form>
