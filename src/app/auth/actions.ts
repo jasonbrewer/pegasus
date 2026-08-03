@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { parseInviteRef } from "@/lib/invite";
-import type { AccountRole } from "@/types/database";
+import type { AccountRole, EmailOtpType } from "@/types/database";
 
 export async function signUp(formData: FormData) {
   const email = formData.get("email") as string;
@@ -120,11 +120,84 @@ export async function requestPasswordReset(formData: FormData) {
   const origin = await siteOrigin();
   const supabase = await createClient();
 
+  // redirectTo carries NO query string of its own. Supabase embeds this value
+  // inside the /auth/v1/verify URL as the redirect_to parameter, and a nested
+  // "?next=..." there stops being part of redirect_to and becomes a parameter
+  // of the verify call instead — which is how the destination silently got
+  // lost. The landing page derives its own destination from `type` now.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
+    redirectTo: `${origin}/auth/confirm`,
   });
 
   redirect("/forgot-password?sent=1");
+}
+
+/** Same-origin relative paths only, so `next` can't become an open redirect. */
+function safeNextPath(value: FormDataEntryValue | null, fallback: string): string {
+  const next = (value as string | null) ?? "";
+  if (next.startsWith("/") && !next.startsWith("//")) return next;
+  return fallback;
+}
+
+/**
+ * Exchanges an emailed auth token for a session — recovery links and email
+ * confirmations alike.
+ *
+ * Called from a POST, never a GET. That is the whole point: the token is
+ * single-use, and mail scanners, link unfurlers and browser prefetch all issue
+ * GETs. Consuming on GET is what produced "Email link is invalid or has
+ * expired" on a link the user was clicking for the first time.
+ *
+ * Two token shapes are handled because two things can arrive here:
+ *
+ *   token_hash — from an email template using {{ .TokenHash }}. Preferred, and
+ *                the one the README now documents. verifyOtp() needs nothing
+ *                from the browser, so the link works even when the mail is
+ *                opened on a different device from the one that asked for it —
+ *                which is the common case: request on a laptop, read mail on a
+ *                phone.
+ *
+ *   code       — from a template using {{ .ConfirmationURL }}, where Supabase
+ *                has already consumed the token at /auth/v1/verify and handed
+ *                back a PKCE code. This path REQUIRES the code-verifier cookie
+ *                set when the reset was requested, so it only works in the
+ *                same browser. Supported for back-compat, not recommended.
+ */
+export async function confirmEmailLink(formData: FormData) {
+  const tokenHash = ((formData.get("token_hash") as string) ?? "").trim();
+  const code = ((formData.get("code") as string) ?? "").trim();
+  const type = ((formData.get("type") as string) ?? "email").trim();
+  const isRecovery = type === "recovery";
+  const next = safeNextPath(formData.get("next"), isRecovery ? "/reset-password" : "/dashboard");
+
+  const fail = (message: string): never => {
+    redirect(
+      (isRecovery ? "/forgot-password?error=" : "/sign-in?error=") + encodeURIComponent(message)
+    );
+  };
+
+  const supabase = await createClient();
+
+  if (tokenHash) {
+    const { error } = await supabase.auth.verifyOtp({
+      type: type as EmailOtpType,
+      token_hash: tokenHash,
+    });
+    if (error) fail(error.message);
+  } else if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      fail(
+        error.message.includes("code verifier")
+          ? "Open the reset link in the same browser you requested it from, or request a new one"
+          : error.message
+      );
+    }
+  } else {
+    fail("That link is missing its token — request a new one");
+  }
+
+  redirect(next);
 }
 
 /**
@@ -157,7 +230,9 @@ export async function updatePassword(formData: FormData) {
     fail(error.message);
   }
 
-  redirect("/dashboard?password_updated=1");
+  // updateUser() leaves them signed in on the new password, so the
+  // dashboard is both the destination and the confirmation.
+  redirect("/dashboard");
 }
 
 export async function signOut() {

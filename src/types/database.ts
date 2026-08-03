@@ -3,6 +3,15 @@
 //   npx supabase gen types typescript --project-id <ref> > src/types/database.ts
 
 export type AccountRole = "freelancer" | "employer";
+
+/** The `type` on an emailed auth link — recovery, signup confirmation, etc. */
+export type EmailOtpType =
+  | "signup"
+  | "invite"
+  | "magiclink"
+  | "recovery"
+  | "email_change"
+  | "email";
 export type RoleCategory = "on-location" | "regional" | "remote";
 export type JobStatus = "draft" | "open" | "closed";
 export type RateType = "hourly" | "day" | "flat";
