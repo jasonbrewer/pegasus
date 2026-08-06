@@ -1,5 +1,40 @@
 -- Batch 6 — proves admins gain READ visibility and NOTHING changes for anyone
 -- else. Run against a database with every migration applied, as postgres.
+--
+-- Setup: supabase/tests/run.sh, or by hand — create an empty database with
+-- postgis + pgcrypto, apply supabase/tests/00_harness.sql, then every file in
+-- supabase/migrations/ in order, then this.
+--
+-- ---------------------------------------------------------------------------
+-- READ THIS BEFORE ADDING AN ASSERTION ABOUT WRITE PROTECTION.
+--
+-- Do NOT assert it with has_table_privilege() or has_column_privilege().
+--
+-- On Supabase, `authenticated` holds SELECT, INSERT, UPDATE and DELETE on
+-- every table in `public` by default. RLS is the gate; the grant is inert
+-- wherever no policy lets a row through. A check like
+--     has_table_privilege('authenticated', 'public.applications', 'DELETE')
+-- is therefore TRUE on a perfectly healthy production database.
+--
+-- This is not theoretical. Migration 20260801000014 shipped with exactly that
+-- assertion. It passed against a bare-Postgres harness and then failed a live
+-- `supabase db push`, rolling the whole migration back. 00_harness.sql now
+-- applies Supabase's default grants precisely so that a check written that way
+-- fails HERE, where it costs a rerun, instead of there.
+--
+-- Assert write protection as RLS + policy shape instead:
+--     * pg_class.relrowsecurity is true for the table, AND
+--     * no permissive UPDATE/DELETE/ALL policy that a non-owner could satisfy.
+--
+-- A grant check is only sound when some migration explicitly REVOKEd the
+-- privilege first — currently only two do: 000010 (profiles UPDATE) and
+-- 000011 (applications UPDATE).
+--
+-- Note that Part 3 below is unaffected by any of this. It does not inspect
+-- privileges at all: it becomes the admin and tries the writes, and accepts
+-- either outcome that leaves the data alone — refused outright, or zero rows
+-- touched. That style of test stays true on both databases.
+-- ---------------------------------------------------------------------------
 \set ON_ERROR_STOP on
 
 -- ---------------------------------------------------------------------------

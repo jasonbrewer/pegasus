@@ -210,33 +210,92 @@ begin
     raise exception 'expected exactly 3 "admins read%%" policies, found %', v_count;
   end if;
 
-  -- ---- no write privilege moved ------------------------------------------
-  -- applications: still no table-level UPDATE, and still no client DELETE.
-  if has_table_privilege('authenticated', 'public.applications', 'UPDATE') then
-    raise exception 'table-level UPDATE on applications is granted — status became writable';
-  end if;
+  -- ---- no write access moved ---------------------------------------------
+  --
+  -- WHY THESE ARE POLICY-SHAPE CHECKS AND NOT GRANT CHECKS.
+  --
+  -- On Supabase, `authenticated` holds broad table privileges across the whole
+  -- of `public` by default — including DELETE on every table, and including
+  -- PostGIS's own tables. RLS is the actual gate; the grant is inert wherever
+  -- no policy lets a row through. So `has_table_privilege(..., 'DELETE')` is
+  -- true on a correctly-configured production database and says nothing about
+  -- whether anybody can actually delete anything.
+  --
+  -- An earlier version of this block asserted that DELETE was NOT granted on
+  -- applications and employer_contacts. That passed against a from-scratch
+  -- Postgres harness, which never receives Supabase's default grants, and
+  -- failed against the real database — a false positive that rolled the whole
+  -- migration back. The property worth asserting is the one that actually
+  -- protects the data: RLS is on, and no permissive write policy lets a
+  -- non-owner through.
+  --
+  -- Scoped to these three tables BY NAME, deliberately. freelancer_contacts,
+  -- freelancer_roles, freelancer_videos, job_contacts, job_titles, jobs and
+  -- saved_jobs all carry legitimate owner-scoped DELETE policies — people are
+  -- meant to be able to remove their own videos, roles and saved jobs. A
+  -- schema-wide "no permissive write policy" check would wrongly condemn them.
+  --
+  -- The two grant checks that DO survive, further down, are the ones with an
+  -- explicit REVOKE behind them in an earlier migration (000010 for profiles,
+  -- 000011 for applications). Those migrations always run before this one, so
+  -- the privilege is genuinely gone by the time this executes.
 
-  if has_table_privilege('authenticated', 'public.applications', 'DELETE') then
-    raise exception 'DELETE on applications is granted — an application could be destroyed';
-  end if;
-
-  select string_agg(col, ', ')
+  -- RLS must be on. Without it every policy below is decoration.
+  select string_agg(relname, ', ')
   into v_missing
-  from unnest(array['status', 'cover_note', 'credits_html', 'first_viewed_at']) as col
-  where has_column_privilege('authenticated', 'public.applications', col, 'UPDATE');
+  from pg_class
+  where oid in ('public.applications'::regclass,
+                'public.employer_contacts'::regclass,
+                'public.profiles'::regclass)
+    and not relrowsecurity;
 
   if v_missing is not null then
-    raise exception 'application content became writable: %', v_missing;
+    raise exception 'RLS is DISABLED on: % — the default grants are live and unguarded', v_missing;
   end if;
 
-  -- employer_contacts: still no DELETE grant (20260801000013).
-  if has_table_privilege('authenticated', 'public.employer_contacts', 'DELETE') then
-    raise exception 'DELETE on employer_contacts is granted';
+  -- Every permissive write policy on these three must pin the row to its
+  -- owner. `using (true)` on an UPDATE here would let any logged-in member
+  -- rewrite anyone's application, contact details or profile, whatever the
+  -- grants say.
+  --
+  -- INSERT is not checked: a permissive insert is how a freelancer applies to
+  -- a job and how an employer creates their own contact row. Its with_check is
+  -- owner-scoped anyway and is covered by the same test.
+  select string_agg(tablename || ' :: ' || policyname || ' (' || cmd || ')', ', ')
+  into v_missing
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in ('applications', 'employer_contacts', 'profiles')
+    and permissive = 'PERMISSIVE'
+    and cmd in ('UPDATE', 'DELETE', 'ALL')
+    and coalesce(qual, '') || coalesce(with_check, '') not like '%auth.uid()%';
+
+  if v_missing is not null then
+    raise exception 'a non-owner could satisfy this write policy: %', v_missing;
   end if;
 
-  -- profiles: nobody can still promote themselves or anyone else.
+  -- No DELETE policy at all on these three. Nothing in the product deletes an
+  -- application, a company contact row or an account from the client, so a
+  -- DELETE policy appearing here is a mistake even if it were owner-scoped.
+  select string_agg(tablename || ' :: ' || policyname, ', ')
+  into v_missing
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in ('applications', 'employer_contacts', 'profiles')
+    and cmd in ('DELETE', 'ALL');
+
+  if v_missing is not null then
+    raise exception 'a DELETE policy exists where nothing should be deletable: %', v_missing;
+  end if;
+
+  -- ---- the grant checks with a REVOKE genuinely behind them ---------------
+  -- 20260801000010 ran `revoke update on public.profiles from authenticated`
+  -- and re-granted only full_name and avatar_path. 20260801000011 did the same
+  -- for applications, re-granting only withdrawn_at. Both are earlier
+  -- migrations, so both have run by the time this does — and unlike the DELETE
+  -- checks above, these describe a privilege the schema actually took away.
   if has_table_privilege('authenticated', 'public.profiles', 'UPDATE') then
-    raise exception 'table-level UPDATE on profiles is granted — is_admin became writable';
+    raise exception 'table-level UPDATE on profiles is granted — 000010''s revoke did not hold';
   end if;
 
   select string_agg(col, ', ')
@@ -246,6 +305,19 @@ begin
 
   if v_missing is not null then
     raise exception 'privilege escalation: profiles.% became writable', v_missing;
+  end if;
+
+  if has_table_privilege('authenticated', 'public.applications', 'UPDATE') then
+    raise exception 'table-level UPDATE on applications is granted — 000011''s revoke did not hold';
+  end if;
+
+  select string_agg(col, ', ')
+  into v_missing
+  from unnest(array['status', 'cover_note', 'credits_html', 'first_viewed_at']) as col
+  where has_column_privilege('authenticated', 'public.applications', col, 'UPDATE');
+
+  if v_missing is not null then
+    raise exception 'application content became writable: %', v_missing;
   end if;
 
   -- ---- the admin write path is still the only one, and still narrow ------
