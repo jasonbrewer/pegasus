@@ -211,8 +211,20 @@ begin
     raise exception 'authenticated is missing % on saved_jobs', v_missing;
   end if;
 
-  if has_table_privilege('authenticated', 'public.saved_jobs', 'update') then
-    raise exception 'saved_jobs has an UPDATE grant it does not need';
+  -- saved_jobs has no mutable column, so nothing should be able to UPDATE it.
+  --
+  -- Asserted as the ABSENCE OF A POLICY, not the absence of a grant. On
+  -- Supabase `authenticated` holds broad table privileges across `public` by
+  -- default, so has_table_privilege(..., 'update') can be true on a perfectly
+  -- healthy database and says nothing about whether a row can actually be
+  -- written. RLS is the gate: with no UPDATE policy, an UPDATE matches no row
+  -- however the grants read. (See the note in supabase/tests/00_harness.sql —
+  -- the same mistake in 20260801000014 rolled back a live push.)
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'saved_jobs' and cmd in ('UPDATE', 'ALL')
+  ) then
+    raise exception 'saved_jobs has an UPDATE policy it does not need';
   end if;
 
   -- Deleting a job must still work now that another table points at it

@@ -11,6 +11,20 @@
 -- block concluded "storage is absent" on a Supabase project where storage very
 -- much exists, and skipped itself without error. Anything guarded by a
 -- catalogue lookup can fail this way, so verify against the catalogue directly.
+--
+-- SECOND RULE, learned the same way: do NOT check write protection with
+-- has_table_privilege(). On Supabase, `authenticated` holds SELECT, INSERT,
+-- UPDATE and DELETE on every table in `public` by default — and `anon` holds
+-- SELECT — with RLS as the actual gate. A "grant absent" check is therefore
+-- red on a perfectly healthy database. Four checks in this file used to be
+-- exactly that, and 20260801000014 once failed a live `supabase db push` for
+-- the same reason. Write protection is asserted here as RLS + policy shape:
+-- the table has RLS on, and no permissive UPDATE/DELETE/ALL policy a
+-- non-owner could satisfy.
+--
+-- A grant check is only sound where a migration explicitly REVOKEd the
+-- privilege. Exactly two do — 000010 (profiles UPDATE) and 000011
+-- (applications UPDATE) — and those checks are kept.
 
 -- No ON COMMIT DROP: psql autocommits each statement, which would destroy the
 -- table before the DO block ever ran.
@@ -208,14 +222,17 @@ begin
     ('000013','authenticated','employer_contacts','UPDATE')
   ) as m(migration, role_name, tbl, priv);
 
-  -- saved_jobs is deliberately UPDATE-less: the table has no mutable
-  -- column, so an UPDATE grant here would be surface with no purpose.
+  -- saved_jobs is deliberately UPDATE-less: the table has no mutable column.
+  -- Checked as the absence of a POLICY, not of a grant — see the note at the
+  -- top of this file about Supabase's default grants.
   insert into migration_audit
-  select '000009', 'grant absent', 'authenticated -> saved_jobs UPDATE',
+  select '000009', 'no write policy', 'saved_jobs :: no UPDATE policy',
          case when to_regclass('public.saved_jobs') is null then 'MISSING (no table)'
-              when has_table_privilege('authenticated', 'public.saved_jobs', 'UPDATE')
-                then 'MISSING (UPDATE granted but never intended)'
-              else 'ok' end;
+              when exists (
+                select 1 from pg_policies
+                where schemaname = 'public' and tablename = 'saved_jobs'
+                  and cmd in ('UPDATE', 'ALL')
+              ) then 'MISSING (an UPDATE policy exists)' else 'ok' end;
 
   -- ---- functions -----------------------------------------------------------
   insert into migration_audit
@@ -333,19 +350,29 @@ begin
                     where schemaname = 'public' and tablename = 'employer_contacts') = 4
               then 'ok' else 'MISSING (unexpected policy count — an extra one may be permissive)' end;
 
-  -- No DELETE: there is no policy or grant for it, so a contact row cannot be
-  -- orphaned away from the employer_profiles row it hangs off.
+  -- No DELETE policy, so a contact row cannot be orphaned away from the
+  -- employer_profiles row it hangs off. The DELETE *grant* is present on
+  -- Supabase by default and is inert without a policy.
   insert into migration_audit
-  select '000013', 'grant absent', 'authenticated -> employer_contacts DELETE',
+  select '000013', 'no write policy', 'employer_contacts :: no DELETE policy',
          case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
-              when has_table_privilege('authenticated', 'public.employer_contacts', 'DELETE')
-                then 'MISSING (DELETE granted but never intended)' else 'ok' end;
+              when exists (
+                select 1 from pg_policies
+                where schemaname = 'public' and tablename = 'employer_contacts'
+                  and cmd in ('DELETE', 'ALL')
+              ) then 'MISSING (a DELETE policy exists)' else 'ok' end;
 
+  -- Logged-out visitors must not read contact info. anon holds a SELECT grant
+  -- by default on Supabase, so what actually keeps them out is that no policy
+  -- on this table addresses anon (or PUBLIC) — every one is `to authenticated`.
   insert into migration_audit
-  select '000013', 'grant absent', 'anon -> employer_contacts SELECT',
+  select '000013', 'no anon policy', 'employer_contacts :: nothing addresses anon',
          case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
-              when has_table_privilege('anon', 'public.employer_contacts', 'SELECT')
-                then 'MISSING (logged-out visitors can read contact info)' else 'ok' end;
+              when exists (
+                select 1 from pg_policies
+                where schemaname = 'public' and tablename = 'employer_contacts'
+                  and ('anon' = any(roles) or 'public' = any(roles))
+              ) then 'MISSING (a policy lets logged-out visitors in)' else 'ok' end;
 
   insert into migration_audit
   select '000013', 'function body', 'handle_new_user -> seeds employer_contacts',
@@ -442,11 +469,39 @@ begin
     ('employers view applications to their jobs')
   ) as m(pol);
 
-  -- No write privilege moved anywhere an admin could use it.
+  -- Nothing can be written on these three by a non-owner, and nothing can be
+  -- deleted at all. Policy shape, not grants — the grants are Supabase's
+  -- defaults and are inert without a policy.
   insert into migration_audit
-  select '000014', 'grant absent', 'authenticated -> applications DELETE',
-         case when has_table_privilege('authenticated', 'public.applications', 'DELETE')
-              then 'MISSING (an application could be destroyed)' else 'ok' end;
+  select '000014', 'no write policy', m.tbl || ' :: every write policy is owner-scoped',
+         case when to_regclass('public.' || m.tbl) is null then 'MISSING (no table)'
+              when exists (
+                select 1 from pg_policies
+                where schemaname = 'public' and tablename = m.tbl
+                  and permissive = 'PERMISSIVE'
+                  and cmd in ('UPDATE', 'DELETE', 'ALL')
+                  and coalesce(qual,'') || coalesce(with_check,'') not like '%auth.uid()%'
+              ) then 'MISSING (a non-owner could satisfy a write policy)' else 'ok' end
+  from (values ('applications'), ('employer_contacts'), ('profiles')) as m(tbl);
+
+  insert into migration_audit
+  select '000014', 'no write policy', m.tbl || ' :: no DELETE policy',
+         case when to_regclass('public.' || m.tbl) is null then 'MISSING (no table)'
+              when exists (
+                select 1 from pg_policies
+                where schemaname = 'public' and tablename = m.tbl and cmd in ('DELETE', 'ALL')
+              ) then 'MISSING (a DELETE policy exists)' else 'ok' end
+  from (values ('applications'), ('employer_contacts'), ('profiles')) as m(tbl);
+
+  -- RLS must be on for any of the above to mean anything.
+  insert into migration_audit
+  select '000014', 'rls enabled', m.tbl || ' (gates the default grants)',
+         case when coalesce((
+           select c.relrowsecurity from pg_class c
+           join pg_namespace n on n.oid = c.relnamespace
+           where n.nspname = 'public' and c.relname = m.tbl
+         ), false) then 'ok' else 'MISSING (RLS off — default grants are unguarded)' end
+  from (values ('applications'), ('employer_contacts'), ('profiles')) as m(tbl);
 
   -- ---- 000010: nobody can promote themselves ------------------------------
   -- profiles.status and profiles.is_admin must NOT be writable from the
