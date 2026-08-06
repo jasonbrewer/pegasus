@@ -10,6 +10,7 @@ import {
   Badge,
   Card,
   SubmitButton,
+  ButtonLink,
   inputClass,
 } from "@/components/ui";
 import { StatusActions } from "@/components/status-actions";
@@ -74,6 +75,7 @@ export default async function AdminPage({
       <PageHeader
         title="Moderation"
         subtitle="Who gets into Production Circles, and who stays in."
+        action={<ButtonLink href="/admin/overview">Everyone</ButtonLink>}
       />
 
       <ErrorBanner message={query.error} />

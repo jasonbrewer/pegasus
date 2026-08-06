@@ -1,5 +1,5 @@
 -- Read-only audit: does the live database actually contain everything
--- migrations 20260801000004 .. 20260801000013 claim to create?
+-- migrations 20260801000004 .. 20260801000014 claim to create?
 --
 -- Run it in the Supabase SQL editor. It writes nothing and returns one row per
 -- expected object, MISSING rows first.
@@ -143,7 +143,10 @@ begin
     ('000011','applications','freelancers withdraw their own applications'),
     ('000013','employer_contacts','employer contacts are owner-only'),
     ('000013','employer_contacts','employers insert their own contact row'),
-    ('000013','employer_contacts','employers update their own contact row')
+    ('000013','employer_contacts','employers update their own contact row'),
+    ('000014','freelancer_contacts','admins read all freelancer contacts'),
+    ('000014','employer_contacts','admins read all employer contacts'),
+    ('000014','applications','admins read all applications')
   ) as m(migration, tbl, pol);
 
   -- ---- policies that must be GONE -----------------------------------------
@@ -309,20 +312,25 @@ begin
   -- every policy on the table pins the row to its owner, and there are
   -- exactly three of them. A stray permissive policy would publish employer
   -- phone numbers to the whole membership.
+  -- Every policy is either owner-scoped or the Batch 6 admin read carve-out.
+  -- The admin branch is named explicitly rather than waved through, so a third
+  -- kind of policy appearing here still fails.
   insert into migration_audit
-  select '000013', 'policy owner-only', 'employer_contacts :: all policies name auth.uid()',
+  select '000013', 'policy owner-only', 'employer_contacts :: owner-scoped, or the admin read',
          case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
               when exists (
                 select 1 from pg_policies
                 where schemaname = 'public' and tablename = 'employer_contacts'
                   and coalesce(qual,'') || coalesce(with_check,'') not like '%auth.uid()%'
-              ) then 'MISSING (a policy is not owner-scoped)' else 'ok' end;
+                  and policyname <> 'admins read all employer contacts'
+              ) then 'MISSING (a policy is neither owner-scoped nor the admin read)' else 'ok' end;
 
+  -- 3 owner-only (select/insert/update) + 1 admin SELECT carve-out (000014).
   insert into migration_audit
-  select '000013', 'policy count', 'employer_contacts :: exactly 3',
+  select '000013', 'policy count', 'employer_contacts :: exactly 4',
          case when to_regclass('public.employer_contacts') is null then 'MISSING (no table)'
               when (select count(*) from pg_policies
-                    where schemaname = 'public' and tablename = 'employer_contacts') = 3
+                    where schemaname = 'public' and tablename = 'employer_contacts') = 4
               then 'ok' else 'MISSING (unexpected policy count — an extra one may be permissive)' end;
 
   -- No DELETE: there is no policy or grant for it, so a contact row cannot be
@@ -376,6 +384,69 @@ begin
          case when to_regprocedure('public.job_applicants(uuid)') is null then 'MISSING (no function)'
               when pg_get_functiondef(to_regprocedure('public.job_applicants(uuid)')) like '%withdrawn_at is null%'
               then 'ok' else 'MISSING' end;
+
+  -- ---- 000014: admin read carve-outs, and their limits --------------------
+  -- The load-bearing one. Batch 6 widened what an admin can SEE; if any policy
+  -- naming the admin helper is anything other than SELECT, an admin has gained
+  -- write access to somebody else's content and this must fail loudly.
+  insert into migration_audit
+  select '000014', 'admin read-only', 'no admin policy is a write policy',
+         case when exists (
+           select 1 from pg_policies
+           where schemaname = 'public'
+             and coalesce(qual,'') || coalesce(with_check,'') like '%current_user_is_admin%'
+             and cmd <> 'SELECT'
+         ) then 'MISSING (an admin WRITE policy exists)' else 'ok' end;
+
+  insert into migration_audit
+  select '000014', 'admin read-only', 'each carve-out is gated on the admin flag',
+         case when exists (
+           select 1 from pg_policies
+           where schemaname = 'public' and policyname like 'admins read%'
+             and coalesce(qual,'') not like '%current_user_is_admin%'
+         ) then 'MISSING (an "admins read" policy is ungated)' else 'ok' end;
+
+  insert into migration_audit
+  select '000014', 'admin read-only', 'exactly 3 "admins read%" policies',
+         case when (select count(*) from pg_policies
+                    where schemaname = 'public' and policyname like 'admins read%') = 3
+              then 'ok' else 'MISSING (unexpected count — an extra carve-out exists)' end;
+
+  -- The non-admin rules Batch 6 promised not to touch.
+  insert into migration_audit
+  select '000014', 'unchanged rule', 'freelancer_contacts still gates on applied-to',
+         case when exists (
+           select 1 from pg_policies
+           where schemaname = 'public' and tablename = 'freelancer_contacts'
+             and policyname = 'freelancer contacts visible to owner and applied-to employers'
+             and qual like '%applications%' and qual like '%employer_id%'
+         ) then 'ok' else 'MISSING (the non-admin contact rule was altered)' end;
+
+  insert into migration_audit
+  select '000014', 'unchanged rule', 'employer_contacts still owner-only for non-admins',
+         case when exists (
+           select 1 from pg_policies
+           where schemaname = 'public' and tablename = 'employer_contacts'
+             and policyname = 'employer contacts are owner-only'
+             and qual like '%auth.uid()%'
+         ) then 'ok' else 'MISSING (the non-admin employer contact rule was altered)' end;
+
+  insert into migration_audit
+  select '000014', 'unchanged rule', 'applications :: ' || m.pol,
+         case when exists (
+           select 1 from pg_policies
+           where schemaname = 'public' and tablename = 'applications' and policyname = m.pol
+         ) then 'ok' else 'MISSING (a non-admin applications rule was dropped)' end
+  from (values
+    ('freelancers view their own applications'),
+    ('employers view applications to their jobs')
+  ) as m(pol);
+
+  -- No write privilege moved anywhere an admin could use it.
+  insert into migration_audit
+  select '000014', 'grant absent', 'authenticated -> applications DELETE',
+         case when has_table_privilege('authenticated', 'public.applications', 'DELETE')
+              then 'MISSING (an application could be destroyed)' else 'ok' end;
 
   -- ---- 000010: nobody can promote themselves ------------------------------
   -- profiles.status and profiles.is_admin must NOT be writable from the
