@@ -41,7 +41,7 @@
 
 .title{
   font-family:var(--font-fraunces), Georgia, serif;
-  font-weight:500;font-size:clamp(2.35rem,4.8vw,3.85rem);
+  font-weight:500;font-size:clamp(2.75rem,6vw,4.75rem);
   line-height:1.05;letter-spacing:-.02em;margin:20px auto 0;max-width:16ch;text-wrap:balance;
 }
 .irisHero{width:48px;height:48px;margin:26px auto 10px;display:block;color:var(--pine);}
