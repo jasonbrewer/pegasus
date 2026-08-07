@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Reference material, not application code: docs/client-scope.jsx is the
+    // scope tool's source prototype, kept verbatim so the port can be diffed
+    // against it. It is never built or imported.
+    "docs/**",
   ]),
 ]);
 

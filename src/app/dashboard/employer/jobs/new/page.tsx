@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_BY_GROUP } from "@/lib/roles";
@@ -67,6 +68,15 @@ export default async function NewJobPage({
       />
 
       <ErrorBanner message={params.error} />
+
+      {/* For the employer who clicked Post a job cold and doesn't know what to
+          put in the rate field. Same destination as the dashboard card. */}
+      <p className="mb-5 text-sm text-muted">
+        First time hiring video?{" "}
+        <Link href="/dashboard/employer/scope" className="underline">
+          Scope it here →
+        </Link>
+      </p>
 
       <form action={createJob} className="flex flex-col gap-5">
         <Field
