@@ -92,6 +92,18 @@
   color: var(--sun-ink);
   font-weight: 600;
 }
+/* A judgment call another answer already decided: shown answered, not editable.
+   The reason why sits underneath it, so this never reads as a dead control. */
+.opt:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.opt:disabled:hover {
+  border-color: var(--field);
+}
+.opt[data-on="true"]:disabled {
+  opacity: 1;
+}
 
 /* The larger card option — polish levels, which need a description line. */
 .optbig {
@@ -228,6 +240,61 @@
 
 .totalRow {
   border-top: 2px solid var(--strong);
+}
+
+/* "This quote assumes…" — the receipt for the number above it. Quieter than a
+   teaching note: it states what was left out, it isn't trying to teach. */
+.assumes {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  color: var(--secondary);
+}
+
+/* ---- Stepped intake ---- */
+
+.progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  background: var(--sun);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.navNext {
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+.navNext:hover {
+  background: var(--accent-hover);
+}
+.navBack {
+  border-radius: 6px;
+  border: 1px solid var(--field);
+  background: transparent;
+  color: var(--content);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.navBack:hover {
+  background: var(--surface-muted);
+}
+.navNext:focus-visible,
+.navBack:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -86,7 +86,8 @@ export const BASELINE = {
     v: 650,
     group: "Post",
     label: "Editing (per day)",
-    trigger: "The core edit rate. One day covers a set amount of finished video (below).",
+    trigger:
+      "The core edit rate, and a day minimum — there is no sub-day edit. One day covers a set amount of finished video (below).",
     help: "Rough → fine → final cut, one flat rate.",
   },
   minsPerEditDay: {
@@ -103,13 +104,6 @@ export const BASELINE = {
     label: "Per extra deliverable",
     trigger: "Each cut beyond the first — its own export, aspect ratio, top & tail.",
     help: "Eight 30-sec cuts = same cutting time as one 4-min video, but seven extra handling charges.",
-  },
-  editHour: {
-    v: 90,
-    group: "Post",
-    label: "Editing (per hour)",
-    trigger: "Small single cuts under one edit day bill hourly instead.",
-    help: "For the John's-plumbing 40-second clip.",
   },
   changesHour: {
     v: 85,

@@ -25,25 +25,32 @@ export type Archetype = "talkinghead" | "branded" | "event" | "training" | "ad";
 export type OnCamera = "one" | "mix" | "conversation" | "execs" | "broll" | "crowd";
 export type Destination = "socialfeed" | "website" | "bigscreen" | "tv";
 export type Filming = "couple" | "one" | "two" | "three";
-export type Drone = "yes" | "no";
+/**
+ * The judgment calls. "unsure" is a real answer a buyer presses, not an
+ * unanswered default: it keeps the line OUT of the estimate (so the ballpark
+ * stays honest and low) and puts the item in the assumptions list flagged for
+ * them to raise with a professional.
+ */
+export type TriState = "yes" | "no" | "unsure";
 export type Hire = "local" | "import";
 export type Distance = "near" | "drive1" | "drive2" | "flight";
 export type PolishKey = "quick" | "standard" | "full";
 export type CountKey = "1" | "2" | "4" | "8";
 export type LengthKey = "0.5" | "1" | "3" | "6";
 
+export type ChecklistKey = "secondCam" | "audio" | "drone" | "graphics";
+
 export type Answers = {
   making: string;
   onCamera: OnCamera;
   destination: Destination;
   filming: Filming;
-  drone: Drone;
   hire: Hire;
   distance: Distance;
   polish: PolishKey;
   count: CountKey;
   each: LengthKey;
-};
+} & Record<ChecklistKey, TriState>;
 
 export type ScopeLine = { key: string; amt: number; simple: string };
 
@@ -51,12 +58,15 @@ export type Scope = {
   lines: ScopeLine[];
   /** Teaching notes, shown under the estimate. */
   notes: string[];
+  /** "This quote assumes…" — the choices behind this number, in plain English. */
+  assumptions: string[];
   /** [label, amount] pairs the lean variant cut to hit its price. */
   dropped: [string, number][];
   total: number;
   variant: Variant;
   isAd: boolean;
   audioRequired: boolean;
+  editDays: number;
   totalMin: number;
   count: number;
 };
@@ -140,14 +150,6 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: "drone",
-    label: "Any aerial / drone shots?",
-    opts: [
-      ["yes", "Yes"],
-      ["no", "No"],
-    ],
-  },
-  {
     key: "hire",
     label: "Who's shooting it?",
     opts: [
@@ -166,6 +168,40 @@ export const QUESTIONS: Question[] = [
       ["flight", "A flight away"],
     ],
   },
+];
+
+/**
+ * The judgment-call checklist — the things a buyer might not know they need.
+ * Aerial/drone was a plain yes/no question in v1 and lives here now, so all
+ * four of these get the same three-state treatment.
+ */
+export const CHECKLIST: { key: ChecklistKey; label: string; help: string }[] = [
+  {
+    key: "secondCam",
+    label: "A second camera?",
+    help: "A second angle. Common for events or a more produced look.",
+  },
+  {
+    key: "audio",
+    label: "A separate audio person?",
+    help: "For multi-person scenes or high-stakes shoots. A single interview usually records fine into the camera.",
+  },
+  {
+    key: "drone",
+    label: "Aerial / drone shots?",
+    help: "Overhead or establishing shots from a drone.",
+  },
+  {
+    key: "graphics",
+    label: "Motion graphics?",
+    help: "Titles, lower-thirds, animated elements.",
+  },
+];
+
+export const TRI_OPTS: [TriState, string][] = [
+  ["yes", "Yes"],
+  ["no", "No"],
+  ["unsure", "I don't know"],
 ];
 
 /** Deliverables — number of cuts × length each. Length values are minutes. */
@@ -205,13 +241,61 @@ export const DEFAULTS: Answers = {
   onCamera: "one",
   destination: "website",
   filming: "couple",
-  drone: "no",
   hire: "local",
   distance: "near",
   polish: "standard",
   count: "1",
   each: "3",
+  secondCam: "no",
+  audio: "no",
+  drone: "no",
+  graphics: "no",
 };
+
+/* ===================== AUTO-RULES ===================== */
+
+/** What the buyer's other answers already decided for them, and why. */
+export type AutoRule = { forced: boolean; because: string };
+
+export const archOf = (making: string): Archetype =>
+  MAKING.find((m) => m.label === making)?.arch ?? "branded";
+
+/**
+ * Three of the four checklist items can be forced ON by answers given
+ * elsewhere — an event needs a second angle, a 2–3 person conversation needs a
+ * sound person, an ad needs titles. The checklist shows those as answered
+ * rather than letting a "No" here quietly contradict the estimate.
+ *
+ * These are the variant-independent rules only. A premium second camera or a
+ * lean trim is the tier doing its job, not the answers forcing a line.
+ */
+export function autoRules(a: Answers): Record<"secondCam" | "audio" | "graphics", AutoRule> {
+  const arch = archOf(a.making);
+  const isAd = arch === "ad" || a.destination === "tv";
+
+  const audioBecause =
+    a.onCamera === "conversation"
+      ? "a 2–3 person conversation needs one"
+      : a.onCamera === "execs"
+        ? "senior execs on camera raise the stakes"
+        : a.destination === "tv"
+          ? "it's airing as a TV or paid ad"
+          : AUDIO_MAKING.has(a.making)
+            ? `a ${a.making.toLowerCase()} always gets one`
+            : "";
+
+  return {
+    secondCam: {
+      forced: arch === "event",
+      because: "event coverage can't stop for a second take",
+    },
+    audio: { forced: audioBecause !== "", because: audioBecause },
+    graphics: {
+      forced: isAd || a.polish === "full",
+      because: isAd ? "it's airing as a TV or paid ad" : "you asked for the fully-produced treatment",
+    },
+  };
+}
 
 /* ========================= ENGINE ========================= */
 
@@ -225,7 +309,7 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
 
   // "Other / not sure" and anything unrecognized price as a branded piece,
   // which is the middle of the range rather than the cheap or dear end.
-  const arch: Archetype = MAKING.find((m) => m.label === a.making)?.arch ?? "branded";
+  const arch = archOf(a.making);
   const days = { couple: 1, one: 1, two: 2, three: 3 }[a.filming];
 
   const audioRequired =
@@ -244,38 +328,38 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   const polish: PolishKey =
     variant === "lean" ? "quick" : variant === "premium" ? "full" : isAd ? "full" : a.polish;
 
-  /* ---- Deliverables billing ---- */
+  /* ---- Deliverables billing ----
+     An editor is a day minimum. There is no such thing as a sub-day edit, so
+     there is no hourly path here: total finished minutes ÷ minutes-per-edit-day,
+     rounded UP, floored at one. At 4 min/day that is 1–4 min → 1 day, 5–8 → 2,
+     9–12 → 3. The only honest sub-day option in the whole tool is the quick
+     local hour, which hands footage off with no edit at all. */
   const eachMin = Number(a.each);
   const count = COUNT_N[a.count] ?? 1;
   const totalMin = +(eachMin * count).toFixed(2);
   const perDay = Math.max(1, r.minsPerEditDay);
-  const singleSmall = count === 1 && totalMin < perDay;
 
-  let editCost: number;
-  let editLabel: string;
-  if (singleSmall) {
-    const hours = Math.max(2, Math.round((totalMin / perDay) * 8) + (polish === "full" ? 1 : 0));
-    editCost = hours * r.editHour;
-    editLabel = `Editing — ${hours} hrs (one short cut)`;
-  } else {
-    let editDays = Math.ceil(totalMin / perDay);
-    if (polish === "full") editDays += 1; // the works finesses longer
-    editDays = Math.max(1, editDays);
-    const base = editDays * r.editDay;
-    const extra = Math.max(0, count - 1) * r.deliverableFee;
-    editCost = base + extra;
-    editLabel =
-      extra > 0
-        ? `Editing — ${editDays} day${editDays > 1 ? "s" : ""} + ${count - 1} extra cut${
-            count - 1 > 1 ? "s" : ""
-          }`
-        : `Editing to final cut — ${editDays} day${editDays > 1 ? "s" : ""}`;
-  }
+  let editDays = Math.max(1, Math.ceil(totalMin / perDay));
+  if (polish === "full") editDays += 1; // the works finesses longer — after the floor
+  const extraCuts = Math.max(0, count - 1);
+  const editCost = editDays * r.editDay + extraCuts * r.deliverableFee;
+  const editLabel =
+    extraCuts > 0
+      ? `Editing — ${editDays} day${editDays > 1 ? "s" : ""} + ${extraCuts} extra cut${
+          extraCuts > 1 ? "s" : ""
+        }`
+      : `Editing to final cut — ${editDays} day${editDays > 1 ? "s" : ""}`;
 
   const colorHours =
     { quick: 2, standard: 4, full: 8 }[polish] + (totalMin >= 10 ? 4 : totalMin >= 5 ? 2 : 0);
-  const wantsGraphics = polish === "full" || isAd;
-  const wantsSecondCam = arch === "event" || (variant === "premium" && arch === "branded");
+
+  // A line goes in if the answers force it OR the buyer asked for it on the
+  // checklist. "I don't know" is deliberately not a yes — it leaves the line
+  // out and shows up in the assumptions instead.
+  const wantsGraphics = polish === "full" || isAd || a.graphics === "yes";
+  const wantsSecondCam =
+    arch === "event" || a.secondCam === "yes" || (variant === "premium" && arch === "branded");
+  const wantsAudio = audioRequired || a.audio === "yes";
 
   const lines: ScopeLine[] = [];
   const notes: string[] = [];
@@ -302,7 +386,7 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   }
 
   /* Sound — a starting guess only; the advisory in the quote does the honest work. */
-  if (audioRequired) {
+  if (wantsAudio) {
     lines.push({
       key: "audio",
       amt: days * r.audioDay,
@@ -377,6 +461,46 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
     );
   }
 
+  /* ---- "This quote assumes…" ----
+     The receipt for this particular number: what was left out, in plain
+     sentences, and only where it is actually true of these answers. A
+     judgment call the buyer wasn't sure about says so, and points at the
+     person who can answer it. */
+  const has = (key: string) => lines.some((l) => l.key === key);
+  // The flag goes inside the sentence, before the full stop, so it reads as
+  // English rather than as an afterthought bolted on after the period.
+  const say = (sentence: string, v?: TriState) =>
+    sentence + (v === "unsure" ? " (you weren't sure — ask your pro)" : "") + ".";
+  const assumptions: string[] = [];
+
+  if (!has("audio")) {
+    assumptions.push(say("This quote assumes audio is recorded into the camera", a.audio));
+  }
+  if (!has("cam2")) assumptions.push(say("This quote assumes one camera", a.secondCam));
+  if (!has("drone")) {
+    assumptions.push(say("This quote assumes no aerial or drone shots", a.drone));
+  }
+  if (!has("gfx")) {
+    assumptions.push(say("This quote assumes no motion graphics or titles", a.graphics));
+  }
+  if (!has("lic")) assumptions.push(say("This quote assumes no licensed music"));
+  if (!has("travel")) assumptions.push(say("This quote assumes no travel"));
+  if (editDays === 1) {
+    assumptions.push(say("This quote assumes one round to final cut, then hourly for changes"));
+  }
+
   const total = lines.reduce((s, l) => s + l.amt, 0);
-  return { lines, notes, dropped, total, variant, isAd, audioRequired, totalMin, count };
+  return {
+    lines,
+    notes,
+    assumptions,
+    dropped,
+    total,
+    variant,
+    isAd,
+    audioRequired,
+    editDays,
+    totalMin,
+    count,
+  };
 }
