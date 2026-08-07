@@ -60,7 +60,7 @@ export default function Home() {
             The most reliable production jobs in media and entertainment.
           </h1>
           <Ring className={styles.irisHero} />
-          <p className={styles.payoff}>Join the circle.</p>
+          <p className={styles.payoff}>Join the circle - its always free.</p>
 
           <div className={styles.ctaRow}>
             <Link href="/sign-up?role=freelancer" className={`${styles.btn} ${styles.btnPrimary}`}>
