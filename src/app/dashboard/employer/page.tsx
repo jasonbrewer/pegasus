@@ -185,6 +185,22 @@ export default async function EmployerDashboardPage() {
         )}
         <ButtonLink href={`/employers/${user.id}`}>View public profile</ButtonLink>
       </div>
+
+      {/* Secondary to the CTA above on purpose: scoping is for the employer who
+          isn't ready to post because they don't know what the job costs. */}
+      <div className="mt-4">
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div>
+              <h2 className="text-sm font-medium">Not sure what a video should cost?</h2>
+              <p className="mt-0.5 text-sm text-muted">
+                Answer a few plain questions and get an honest, line-item estimate.
+              </p>
+            </div>
+            <ButtonLink href="/dashboard/employer/scope">Scope a job</ButtonLink>
+          </div>
+        </Card>
+      </div>
     </PageShell>
   );
 }

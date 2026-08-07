@@ -1,0 +1,237 @@
+/*
+ * Look and feel for the scoping tool only.
+ *
+ * Scoped as a CSS module — same reasoning as _landing/landing.module.css: it
+ * cannot reach the app's semantic tokens or anything outside this route.
+ *
+ * Where it differs from the landing module: this one does NOT pin a fixed
+ * palette. Structure (surfaces, text, rules, fields) comes from the app's own
+ * tokens, so the tool themes with the rest of the dashboard it sits inside
+ * instead of dropping a cream page between a dark nav and a dark footer. Only
+ * the three accents the prototype needs and the app doesn't have — sun (the
+ * selection colour), teach (the explanation notes), flag (the budget warning)
+ * — are defined here, each with a dark-scheme value. Every pairing below
+ * clears WCAG AA in both schemes.
+ *
+ * Fonts are the ones the root layout already loads (--font-fraunces,
+ * --font-geist-mono). No external stylesheet is fetched.
+ */
+
+.root {
+  --sun: #c2521b;
+  --sun-ink: #ffffff;
+  --sun-soft: #fbe6d8;
+  --teach: #245c52;
+  --teach-soft: #e4f0ed;
+  --flag: #9e2b25;
+  --flag-soft: #f6e5e2;
+  --focus: #3a5a8c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .root {
+    --sun: #f08a4b;
+    --sun-ink: #1a1006;
+    --sun-soft: #3a2312;
+    --teach: #5ec5ae;
+    --teach-soft: #12312b;
+    --flag: #f2938c;
+    --flag-soft: #331519;
+    --focus: #8fb0e0;
+  }
+}
+
+.serif {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+.mono {
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.underline {
+  background: linear-gradient(180deg, transparent 62%, var(--sun-soft) 62%);
+}
+
+/* Pill option, used for every single-choice question. */
+.opt {
+  border: 1.5px solid var(--field);
+  background: var(--surface);
+  color: var(--content);
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+}
+.opt:hover {
+  border-color: var(--strong);
+}
+.opt:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 2px;
+}
+.opt[data-on="true"] {
+  border-color: var(--sun);
+  background: var(--sun);
+  color: var(--sun-ink);
+  font-weight: 600;
+}
+
+/* The larger card option — polish levels, which need a description line. */
+.optbig {
+  border: 1.5px solid var(--field);
+  background: var(--surface);
+  color: var(--content);
+  border-radius: 12px;
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+.optbig:hover {
+  border-color: var(--strong);
+}
+.optbig:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 2px;
+}
+.optbig[data-on="true"] {
+  border-color: var(--sun);
+  box-shadow: inset 0 0 0 1.5px var(--sun);
+  background: var(--sun-soft);
+}
+
+/* Estimate line with a dotted leader, so the eye tracks label → price. */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.line:last-child {
+  border-bottom: none;
+}
+.dots {
+  flex: 1;
+  border-bottom: 1.5px dotted var(--field);
+  transform: translateY(-3px);
+  min-width: 14px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.5);
+}
+
+/*
+ * Money input: the prefix and the field are siblings in a flex wrapper rather
+ * than the $ being absolutely positioned over the input, which is what let it
+ * collide with the digits in v1 of the prototype.
+ */
+.money {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--field);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+  max-width: 170px;
+}
+.money:focus-within {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 1px;
+  border-color: var(--strong);
+}
+.pfx {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 15px;
+  color: var(--muted);
+  padding: 10px 4px 10px 12px;
+  user-select: none;
+}
+.money input {
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 10px 12px 10px 2px;
+  font-size: 16px;
+  width: 100%;
+  color: var(--content);
+}
+
+.chip {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 11px;
+  border: 1.5px solid var(--field);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+  color: var(--content);
+}
+.chip[data-on="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.chip:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The teaching note. Every one of these is the actual product. */
+.teach {
+  background: var(--teach-soft);
+  border-left: 3px solid var(--teach);
+  border-radius: 0 8px 8px 0;
+  padding: 9px 12px;
+  color: var(--content);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Shown when the stated budget can't buy even the lean scope. */
+.warn {
+  background: var(--flag-soft);
+  border: 1.5px solid var(--flag);
+  border-radius: 10px;
+  padding: 16px;
+}
+.warnTitle {
+  color: var(--flag);
+}
+
+.totalRow {
+  border-top: 2px solid var(--strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root * {
+    transition: none !important;
+  }
+}
