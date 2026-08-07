@@ -24,11 +24,10 @@
 
 /* ---- Hero ---- */
 .hero{
-  /* One viewport tall so the CTAs sit above the fold. 64px ≈ your TopNav
-     height — nudge this if your nav is taller/shorter. */
-  min-height:calc(100svh - 64px);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:36px 0;
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;padding:72px 0 96px;
+}
+   
 }
 .hero .wrap{display:flex;flex-direction:column;align-items:center;}
 
@@ -47,7 +46,7 @@
 .irisHero{width:48px;height:48px;margin:26px auto 10px;display:block;color:var(--pine);}
 .payoff{
   font-family:var(--font-fraunces), Georgia, serif;font-style:italic;font-weight:500;
-  font-size:clamp(1.5rem,3vw,2.3rem);letter-spacing:-.01em;margin:0;color:var(--pine);
+  font-size:clamp(1.7rem,3.6vw,2.7rem);letter-spacing:-.01em;margin:0;color:var(--pine);
 }
 
 .ctaRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:28px;}
