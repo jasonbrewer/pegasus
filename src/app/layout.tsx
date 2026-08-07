@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { TopNav } from "@/components/top-nav";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
