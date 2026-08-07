@@ -11,6 +11,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // password. Gating it here would make that message unreachable.
 const PUBLIC_PATHS = new Set([
   "/",
+  "/how-we-operate",
   "/sign-in",
   "/sign-up",
   "/forgot-password",
