@@ -1,0 +1,141 @@
+/* Brand look for the public landing pages only.
+   Scoped here (not in globals.css) so it can't touch the app's semantic
+   tokens or dark mode. .page pins a fixed light palette on purpose — a
+   marketing hero shouldn't invert with the OS theme. */
+
+.page{
+  --pine:#1E4034;
+  --pine-hover:#173327;
+  --brass:#B9852F;
+  --paper:#FBFAF7;
+  --card:#FFFFFF;
+  --mist:#E7E4DB;
+  --ink:#161514;
+  --stone:#6B6560;
+
+  flex:1 0 auto;
+  background:var(--paper);
+  color:var(--ink);
+  color-scheme:light;
+  font-family:var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px;}
+
+/* ---- Hero ---- */
+.hero{
+  /* One viewport tall so the CTAs sit above the fold. 64px ≈ your TopNav
+     height — nudge this if your nav is taller/shorter. */
+  min-height:calc(100svh - 64px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:36px 0;
+}
+.hero .wrap{display:flex;flex-direction:column;align-items:center;}
+
+.eyebrow{
+  font-family:var(--font-geist-mono), monospace;
+  font-weight:500;font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--brass);display:inline-flex;align-items:center;gap:10px;
+}
+.eyebrow::before,.eyebrow::after{content:"";width:22px;height:1px;background:var(--mist);}
+
+.title{
+  font-family:var(--font-fraunces), Georgia, serif;
+  font-weight:500;font-size:clamp(2.35rem,4.8vw,3.85rem);
+  line-height:1.05;letter-spacing:-.02em;margin:20px auto 0;max-width:16ch;text-wrap:balance;
+}
+.irisHero{width:48px;height:48px;margin:26px auto 10px;display:block;color:var(--pine);}
+.payoff{
+  font-family:var(--font-fraunces), Georgia, serif;font-style:italic;font-weight:500;
+  font-size:clamp(1.5rem,3vw,2.3rem);letter-spacing:-.01em;margin:0;color:var(--pine);
+}
+
+.ctaRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:28px;}
+.btn{
+  font-weight:600;font-size:15.5px;border-radius:999px;padding:15px 30px;line-height:1;
+  text-decoration:none;display:inline-flex;align-items:center;gap:9px;border:1.5px solid transparent;
+  transition:transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.85;}
+.btnPrimary{background:var(--pine);color:#F4F1E8;}
+.btnPrimary:hover{background:var(--pine-hover);transform:translateY(-1px);}
+.btnGhost{background:transparent;color:var(--ink);border-color:var(--ink);}
+.btnGhost:hover{background:var(--ink);color:var(--paper);transform:translateY(-1px);}
+
+.reassure{margin:26px auto 0;font-size:14px;color:var(--stone);display:inline-flex;align-items:center;gap:9px;}
+.tick{color:var(--brass);font-family:var(--font-geist-mono), monospace;}
+
+/* ---- Differentiators ---- */
+.diff{padding:96px 0 40px;}
+.sectionHead{display:flex;align-items:baseline;gap:18px;margin-bottom:38px;}
+.label{
+  font-family:var(--font-geist-mono), monospace;font-size:12px;font-weight:500;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--stone);white-space:nowrap;
+}
+.rule{flex:1;height:1px;background:var(--mist);align-self:center;}
+
+.grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--mist);
+  border:1px solid var(--mist);border-radius:16px;overflow:hidden;
+}
+.cell{background:var(--card);padding:30px 30px 32px;transition:background .18s ease;}
+.cell:hover{background:#FDFCF9;}
+.mark{width:20px;height:20px;color:var(--brass);margin-bottom:16px;display:block;}
+.cellTitle{font-weight:600;font-size:1.12rem;letter-spacing:-.01em;margin:0 0 8px;line-height:1.25;}
+.cellBody{margin:0;color:var(--stone);font-size:.97rem;line-height:1.58;}
+
+/* ---- Operate link (home) ---- */
+.operate{padding:92px 0 96px;text-align:center;}
+.operateLink{
+  font-weight:600;font-size:1.05rem;display:inline-flex;align-items:center;gap:12px;
+  text-decoration:none;padding-bottom:3px;border-bottom:2px solid var(--brass);color:var(--ink);
+}
+.operateLink:hover{gap:16px;}
+.arw{transition:transform .18s ease;}
+.operateLink:hover .arw{transform:translateX(3px);}
+
+/* ---- Article (How we operate) ---- */
+.article{padding:74px 0 20px;}
+.backlink{
+  font-family:var(--font-geist-mono), monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--stone);text-decoration:none;display:inline-flex;
+  align-items:center;gap:8px;margin-bottom:34px;
+}
+.backlink:hover{color:var(--ink);}
+.articleHead{max-width:64ch;margin:0 auto;}
+.articleTitle{
+  font-family:var(--font-fraunces), Georgia, serif;font-weight:500;
+  font-size:clamp(2.2rem,4.4vw,3.3rem);line-height:1.06;letter-spacing:-.02em;
+  margin:18px 0 0;text-wrap:balance;
+}
+.prose{max-width:64ch;margin:34px auto 0;}
+.prose p{margin:0 0 1.15em;color:#2C2A27;font-size:1.08rem;line-height:1.74;}
+.prose p:first-child{
+  font-family:var(--font-fraunces), Georgia, serif;font-weight:500;font-size:1.34rem;
+  line-height:1.5;color:var(--ink);letter-spacing:-.01em;
+}
+
+/* ---- Closing CTA (How we operate) ---- */
+.ctaBlock{text-align:center;padding:78px 0 40px;margin-top:64px;border-top:1px solid var(--mist);}
+
+/* ---- Motion ---- */
+@media (prefers-reduced-motion:no-preference){
+  .irisHero{animation:ringIn .8s ease both;transform-origin:50% 50%;}
+  @keyframes ringIn{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:none;}}
+  .title,.payoff,.ctaRow,.reassure{animation:rise .7s ease both;}
+  .payoff{animation-delay:.05s;}
+  .ctaRow{animation-delay:.1s;}
+  .reassure{animation-delay:.16s;}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+}
+
+/* ---- Responsive ---- */
+@media (max-width:720px){
+  .hero{padding:24px 0;}
+  .grid{grid-template-columns:1fr;}
+  .sectionHead{flex-wrap:wrap;gap:10px;}
+  .rule{display:none;}
+  .btn{flex:1;justify-content:center;}
+  .ctaRow{gap:12px;width:100%;}
+  .article{padding:44px 0 10px;}
+}
