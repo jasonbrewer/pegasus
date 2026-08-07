@@ -27,8 +27,6 @@
   display:flex;flex-direction:column;align-items:center;
   text-align:center;padding:72px 0 96px;
 }
-   
-}
 .hero .wrap{display:flex;flex-direction:column;align-items:center;}
 
 .eyebrow{
@@ -43,13 +41,13 @@
   font-weight:500;font-size:clamp(2.75rem,6vw,4.75rem);
   line-height:1.05;letter-spacing:-.02em;margin:20px auto 0;max-width:16ch;text-wrap:balance;
 }
-.irisHero{width:48px;height:48px;margin:26px auto 10px;display:block;color:var(--pine);}
+.irisHero{width:52px;height:52px;margin:30px auto 12px;display:block;color:var(--pine);}
 .payoff{
   font-family:var(--font-fraunces), Georgia, serif;font-style:italic;font-weight:500;
   font-size:clamp(1.7rem,3.6vw,2.7rem);letter-spacing:-.01em;margin:0;color:var(--pine);
 }
 
-.ctaRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:28px;}
+.ctaRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:30px;}
 .btn{
   font-weight:600;font-size:15.5px;border-radius:999px;padding:15px 30px;line-height:1;
   text-decoration:none;display:inline-flex;align-items:center;gap:9px;border:1.5px solid transparent;
@@ -65,7 +63,7 @@
 .tick{color:var(--brass);font-family:var(--font-geist-mono), monospace;}
 
 /* ---- Differentiators ---- */
-.diff{padding:96px 0 40px;}
+.diff{padding:40px 0 40px;}
 .sectionHead{display:flex;align-items:baseline;gap:18px;margin-bottom:38px;}
 .label{
   font-family:var(--font-geist-mono), monospace;font-size:12px;font-weight:500;
@@ -130,7 +128,7 @@
 
 /* ---- Responsive ---- */
 @media (max-width:720px){
-  .hero{padding:24px 0;}
+  .hero{padding:44px 0 64px;}
   .grid{grid-template-columns:1fr;}
   .sectionHead{flex-wrap:wrap;gap:10px;}
   .rule{display:none;}
