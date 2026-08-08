@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   autoRules,
   buildScope,
@@ -24,12 +24,12 @@ import styles from "./scope.module.css";
 /**
  * "Scope a job" — the employer-facing scoper.
  *
- * A client component start to finish: every answer is local state, nothing is
- * fetched, and nothing is saved (spec §9 — v1 is stateless). The rate sheet is
- * imported from the config file at build time, so this component never talks
- * to Supabase.
+ * A client component start to finish: every answer is local state and nothing
+ * is fetched. The rate sheet is imported from the config file at build time,
+ * so this component never talks to Supabase — including on the public route,
+ * where saving is the caller's job via `onProgress` and not this file's.
  *
- * The intake is stepped into five groups rather than one long page, and the
+ * The intake is stepped into six groups rather than one long page, and the
  * estimate is live the whole way through — the number moving in response to an
  * answer is the teaching mechanism, so it is never hidden until the end. On
  * desktop it sits beside the questions; on mobile a compact running total
@@ -38,6 +38,18 @@ import styles from "./scope.module.css";
  * The prototype's second tab — the baseline rate editor — is deliberately not
  * here and must not be added. Employers never see or edit the house rates
  * (spec §5); JB edits src/lib/scoping/baseline.ts and redeploys.
+ *
+ * ONE COMPONENT, TWO ROUTES. This lives in components/ rather than beside a
+ * page because /dashboard/employer/scope (signed in) and /scope (public, no
+ * account) both render it. They get the same questions, the same steps and the
+ * same numbers because it is the same file reading the same rate sheet —
+ * copying it to give the public page its own flow is exactly the drift this
+ * arrangement exists to prevent.
+ *
+ * The two optional props are the whole of the difference between them:
+ *   onProgress  the public page persists the session as it is answered
+ *   result      the public page appends its CTA panel under the estimate
+ * The dashboard passes neither and behaves as it always has.
  *
  * TODO(spec §7): pre-filling the Post-a-Job form from a finished scope
  * (suggested title, budget range, description hints) is the upgrade that turns
@@ -54,11 +66,14 @@ type Pick = (key: keyof Answers, value: string) => void;
 function MoneyInput({
   value,
   onChange,
+  onCommit,
   ariaLabel,
   placeholder,
 }: {
   value: string;
   onChange: (value: string) => void;
+  /** Fired on blur — a typed field is "answered" when they leave it, not per keystroke. */
+  onCommit?: () => void;
   ariaLabel: string;
   placeholder?: string;
 }) {
@@ -73,6 +88,7 @@ function MoneyInput({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, ""))}
+        onBlur={onCommit}
       />
     </div>
   );
@@ -164,6 +180,120 @@ function PolishPicker({ value, onPick }: { value: string; onPick: Pick }) {
             </span>
           </button>
         ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/**
+ * "Where's the shoot?" — free text, and skippable.
+ *
+ * Sits with the other project questions rather than on the opening screen: on
+ * screen one it reads as a form asking who you are, which is the thing this
+ * tool spent five steps not doing. Here it reads as part of describing the job,
+ * and it is the question the travel answers underneath it hang off.
+ *
+ * "Not sure yet" is a real button and stores nothing. Plenty of people are
+ * scoping before they have picked a venue, and a tool that will not move until
+ * they invent an answer gets a made-up one. The captured value stays null and
+ * the step they reached says they were asked.
+ *
+ * Nothing here is geocoded or looked up. What the visitor types is what we
+ * keep — no IP lookup, no silent inference. That is a promise, not an
+ * implementation detail.
+ */
+function LocationPicker({
+  value,
+  onPick,
+  onCommit,
+}: {
+  value: string;
+  onPick: Pick;
+  onCommit?: () => void;
+}) {
+  const skipped = value === "";
+
+  return (
+    <fieldset className="mb-7">
+      <legend className={`${styles.eyebrow} mb-2`}>Where&apos;s the shoot?</legend>
+      <p className={`mb-3 text-sm ${styles.muted}`}>
+        A city, a metro, or a zip is plenty. It decides who&apos;s close enough to shoot it — and
+        whether anyone has to travel.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          className={styles.text}
+          value={value}
+          aria-label="Where the shoot is — city, metro or zip"
+          placeholder="e.g. Richmond, VA or 23220"
+          maxLength={160}
+          onChange={(e) => onPick("shootLocation", e.target.value)}
+          onBlur={onCommit}
+        />
+        {/* A toggle, not a radio: there is no group here, just a field and a
+            way to say "leave it blank and move on". */}
+        <button
+          type="button"
+          aria-pressed={skipped}
+          className={styles.opt}
+          data-on={skipped}
+          onClick={() => {
+            onPick("shootLocation", "");
+            onCommit?.();
+          }}
+        >
+          Not sure yet
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
+/**
+ * The budget question.
+ *
+ * Placed last, and deliberately not first. Asked on the opening screen it is a
+ * qualifying question and people either round it or lie; asked here, after
+ * they have described the job and watched the number move, it is the number
+ * they actually have. It is still optional, and the tool is fully usable
+ * without it — nothing below refuses to render because this is blank.
+ */
+function BudgetPicker({
+  value,
+  onChange,
+  onCommit,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onCommit: () => void;
+}) {
+  return (
+    <fieldset className="mb-2">
+      <legend className={`${styles.eyebrow} mb-2`}>What&apos;s your budget?</legend>
+      <p className={`mb-3 text-sm ${styles.muted}`}>
+        Optional. Tell us what you have and we&apos;ll fit the most video to it — and say so
+        plainly if it doesn&apos;t stretch to what you&apos;ve described.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <MoneyInput
+          value={value}
+          onChange={onChange}
+          onCommit={onCommit}
+          ariaLabel="Budget in dollars"
+          placeholder="e.g. 3500"
+        />
+        <button
+          type="button"
+          aria-pressed={value === ""}
+          className={styles.opt}
+          data-on={value === ""}
+          onClick={() => {
+            onChange("");
+            onCommit();
+          }}
+        >
+          Not sure yet
+        </button>
       </div>
     </fieldset>
   );
@@ -473,10 +603,48 @@ function Estimate({
 
 /* ========================== TOOL ========================== */
 
-export function ScopeTool() {
+/**
+ * A snapshot of the session, handed to `onProgress` whenever something worth
+ * saving happens and to `result` when the last step renders.
+ *
+ * `scope` is the ACTIVE variant's scope, so the itemisation a caller renders
+ * and the total it reports are the ones on screen. Everything here comes out
+ * of engine.ts — a caller never re-derives a number.
+ */
+export type ScopeProgress = {
+  answers: Answers;
+  budget: string;
+  variant: Variant;
+  scope: Scope;
+  /** Zero-based index of the furthest step reached, not the current one. */
+  furthestStep: number;
+  /** "03/06 The shoot" — zero-padded so it sorts in step order. */
+  furthestStepLabel: string;
+  stepCount: number;
+};
+
+export function ScopeTool({
+  onProgress,
+  result,
+}: {
+  /**
+   * Called once on mount, then on each answer, each step change and each blur
+   * of a typed field. Never on every keystroke. The caller decides what to do
+   * with it; this component neither knows nor cares whether anything is saved.
+   */
+  onProgress?: (progress: ScopeProgress) => void;
+  /** Rendered full-width beneath the estimate on the final step. */
+  result?: (progress: ScopeProgress) => ReactNode;
+} = {}) {
   const [answers, setAnswers] = useState<Answers>(DEFAULTS);
   const [budget, setBudget] = useState("");
   const [step, setStep] = useState(0);
+  // How far they ever got, which is not where they are — pressing Back must
+  // not un-report reaching the end.
+  const [furthestStep, setFurthestStep] = useState(0);
+  // Bumped by anything worth persisting. Typed fields bump on blur, not on
+  // keystroke, which is what keeps this from being a save-per-character.
+  const [saveTick, setSaveTick] = useState(0);
   // Lifted so the desktop card and the mobile sheet can never disagree.
   const [pick, setPick] = useState<Variant | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -503,9 +671,17 @@ export function ScopeTool() {
   }
   const active: Variant = pick ?? fitted ?? "recommended";
 
+  const save = () => setSaveTick((n) => n + 1);
+
   // Every value passed here comes from the option lists in engine.ts, so the
-  // assertion only restates what the markup already guarantees.
-  const onPick: Pick = (key, value) => setAnswers((a) => ({ ...a, [key]: value }) as Answers);
+  // assertion only restates what the markup already guarantees. The exception
+  // is shootLocation, which is free text and therefore already a string.
+  const onPick: Pick = (key, value) => {
+    setAnswers((a) => ({ ...a, [key]: value }) as Answers);
+    // A typed field saves when it is left, not on every letter — the location
+    // input passes its own onCommit for that.
+    if (key !== "shootLocation") save();
+  };
 
   const steps: { title: string; body: ReactNode }[] = [
     {
@@ -527,6 +703,18 @@ export function ScopeTool() {
       ),
     },
     {
+      title: "The shoot",
+      body: (
+        <>
+          <LocationPicker value={answers.shootLocation} onPick={onPick} onCommit={save} />
+          <Ask k="filming" answers={answers} onPick={onPick} />
+          <Ask k="hire" answers={answers} onPick={onPick} />
+          {/* Distance only matters once they're open to bringing someone in. */}
+          {answers.hire === "import" && <Ask k="distance" answers={answers} onPick={onPick} />}
+        </>
+      ),
+    },
+    {
       title: "The footage",
       body: <Deliverables answers={answers} onPick={onPick} />,
     },
@@ -535,44 +723,51 @@ export function ScopeTool() {
       body: <JudgmentCalls answers={answers} onPick={onPick} />,
     },
     {
-      title: "Logistics",
-      body: (
-        <>
-          <Ask k="filming" answers={answers} onPick={onPick} />
-          <Ask k="hire" answers={answers} onPick={onPick} />
-          {/* Distance only matters once they're open to bringing someone in. */}
-          {answers.hire === "import" && <Ask k="distance" answers={answers} onPick={onPick} />}
-
-          <fieldset className="mb-2">
-            <legend className={`${styles.eyebrow} mb-2`}>What&apos;s your budget? (optional)</legend>
-            <div className="flex flex-wrap items-center gap-3">
-              <MoneyInput
-                value={budget}
-                onChange={setBudget}
-                ariaLabel="Budget in dollars"
-                placeholder="e.g. 3500"
-              />
-              {budget !== "" && (
-                <button type="button" className={styles.chip} onClick={() => setBudget("")}>
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className={`mt-2 text-sm ${styles.muted}`}>
-              Tell us what you have and we&apos;ll fit the most video to it. Or leave it blank and
-              compare levels.
-            </p>
-          </fieldset>
-        </>
-      ),
+      title: "Your budget",
+      body: <BudgetPicker value={budget} onChange={setBudget} onCommit={save} />,
     },
   ];
 
   const isLast = step === steps.length - 1;
   const current = steps[step];
 
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  const progress: ScopeProgress = {
+    answers,
+    budget,
+    variant: active,
+    scope: scopes[active],
+    furthestStep,
+    furthestStepLabel: `${pad(furthestStep + 1)}/${pad(steps.length)} ${steps[furthestStep].title}`,
+    stepCount: steps.length,
+  };
+
+  // The snapshot is parked in a ref so the notify effect can depend on
+  // saveTick ALONE. Depending on the snapshot instead would fire it on every
+  // keystroke, which is the thing saveTick exists to avoid — and depending on
+  // saveTick while closing over the snapshot would send a stale one.
+  //
+  // Two effects, and the order matters: effects run in declaration order, so
+  // the parking effect has already stored this render's values by the time the
+  // notify effect looks at them.
+  const latest = useRef<{
+    progress: ScopeProgress;
+    onProgress?: (progress: ScopeProgress) => void;
+  } | null>(null);
+
+  useEffect(() => {
+    latest.current = { progress, onProgress };
+  });
+
+  useEffect(() => {
+    if (latest.current) latest.current.onProgress?.(latest.current.progress);
+  }, [saveTick]);
+
   const go = (to: number) => {
     setStep(to);
+    setFurthestStep((f) => Math.max(f, to));
+    save();
     // Send focus to the new step's heading rather than leaving it on a button
     // that just moved out from under the cursor.
     requestAnimationFrame(() => headingRef.current?.focus());
@@ -653,6 +848,11 @@ export function ScopeTool() {
 
         <div className="hidden lg:sticky lg:top-6 lg:block">{estimate}</div>
       </div>
+
+      {/* The public page's CTA panel. Full width and below both columns, so it
+          reads as what comes after the estimate rather than as another thing
+          competing with it. */}
+      {isLast && result && <div className="mt-10">{result(progress)}</div>}
     </div>
   );
 }

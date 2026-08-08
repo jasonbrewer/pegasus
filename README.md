@@ -135,6 +135,12 @@ functions. Summary:
   and free).
 - **`zip_codes`** — 42,249 US ZIP centroids. Every ZIP a user submits is resolved against this
   table; see [ZIP geocoding](#zip-geocoding).
+- **`scope_sessions`** — one row per visit to the public scoping tool at `/scope`: what they're
+  making, the judgment-call answers, where the shoot is, the budget they typed, the estimate the
+  tool produced, which CTA they pressed, and their contact details once given. Written as they
+  answer rather than on submit, so an abandoned session still leaves the answers behind. Written
+  **only** through `record_scope_session()` and readable **only** by an admin — see
+  [The public scope tool](#the-public-scope-tool).
 
 ### Geo matching
 
@@ -152,8 +158,9 @@ proximity queries. Matching is soft, not a hard wall:
 
 ## Visibility: members-only
 
-Production Circles is login-gated. A signed-out visitor sees the landing page and the
-sign-in / sign-up pages, and nothing else — no profiles, no job listings.
+Production Circles is login-gated. A signed-out visitor sees the landing page, the
+sign-in / sign-up pages and the public scoping tool at `/scope`, and nothing else — no profiles,
+no job listings.
 
 This is enforced in two independent places, so neither one is a single point of failure:
 
@@ -173,6 +180,50 @@ Two tables stay readable without a session, deliberately:
 
 Owner-only write policies and applicant privacy (an application is visible only to the applicant
 and to the job's employer) are unchanged.
+
+## The public scope tool
+
+`/scope` is the one page a stranger can use for real: the full scoping tool, no account, no email
+required. It renders the same component as `/dashboard/employer/scope`
+(`src/components/scope/scope-tool.tsx`) reading the same rate sheet
+(`src/lib/scoping/baseline.ts`), so there is exactly one copy of the questions and one copy of the
+numbers. The dashboard page keeps its auth guard; this is a second door to the same tool.
+
+It is also the only place in the product where an **anonymous visitor writes to the database**, so
+the rules are worth stating plainly. Full reasoning is in the header of
+`supabase/migrations/20260801000015_batch7_public_scope_sessions.sql`; the test that holds it up is
+`supabase/tests/batch7_public_scope_sessions_test.sql`.
+
+- **`anon` holds no privilege on `scope_sessions`.** Not SELECT, not INSERT, not UPDATE, not
+  DELETE. A leaked anon key hitting PostgREST directly cannot reach the table at all.
+- **The only write path is `record_scope_session()`** — `security definer`, `returns void`, and it
+  touches exactly one row: the one whose `session_id` it was handed. Because it returns nothing, it
+  can never be used to read a row back.
+- **The session id is a capability token.** Minted server-side, kept in an httpOnly cookie, never
+  rendered into the page or the URL. The browser cannot choose it and script cannot read it, so a
+  visitor has no way to name someone else's row.
+- **`user_id` is never a parameter.** It is stamped from `auth.uid()`, set once, and can never be
+  re-pointed at another account. Once an account claims a session, nobody else can write it.
+- **No public SELECT.** The single policy on the table is `for select … using
+  (current_user_is_admin())`. An ordinary logged-in member reads zero rows, including their own.
+- **No IP geolocation, ever.** `shoot_location` comes from the question the tool asks and from
+  nothing else. `referral_source` holds the referrer and UTM tags the visitor's own link already
+  carried — where a click came from, not who made it.
+
+Why a function and not an anon INSERT/UPDATE policy: an UPDATE whose `WHERE` clause reads a column
+needs read access to the row, so Postgres applies the SELECT policies on top of the UPDATE policy.
+With no SELECT policy for `anon` the update silently matches nothing. "Anon may update its own row"
+and "anon may never select" cannot both be true of a policy-only design.
+
+There is no admin UI for these leads yet — read them from the Supabase SQL editor:
+
+```sql
+select created_at, contact_name, contact_email, contact_phone, making_type,
+       shoot_location, budget_input, computed_estimate, judgment_answers, referral_source
+from public.scope_sessions
+where cta_clicked = 'call_me'
+order by created_at desc;
+```
 
 ## Access control: a curated community
 
@@ -384,8 +435,12 @@ ZIP+4 input (`23220-1234`) is normalized to the 5-digit code at both layers.
 - Job posting form + server action (role picker grouped by taxonomy, validated ZIP)
 - Freelancer and employer profile pages (owner-gated edit + members-only view)
 - Login gating: RLS scoped to authenticated, plus route-level redirects
+- Public scope tool at `/scope` (no account) with session capture — see
+  [The public scope tool](#the-public-scope-tool)
 
 **Explicitly not built yet:**
+- An admin view of `scope_sessions`. The RLS lets an admin read every row, but nothing renders
+  them — read the lead list from the SQL editor for now (query above)
 - Freelancer profile editing UI
 - Job feed UI (proximity-ranked, filterable by role) — `job_feed()` exists and is tested, but
   nothing renders it yet
