@@ -306,7 +306,13 @@ export interface Database {
           session_id: string;
           user_id: string | null;
           making_type: string | null;
-          judgment_answers: Record<string, string> | null;
+          /**
+           * The complete intake in engine.ts's vocabulary — every question the
+           * tool asked, not only the judgment checklist. Keys and values come
+           * from MAKING / QUESTIONS / POLISH / COUNT_OPTS / LEN_OPTS /
+           * CHECKLIST, so they survive an on-screen rewording.
+           */
+          answers: Record<string, string> | null;
           shoot_location: string | null;
           budget_input: string | null;
           computed_estimate: number | null;
@@ -399,7 +405,7 @@ export interface Database {
         Args: {
           p_session_id: string;
           p_making_type?: string | null;
-          p_judgment_answers?: Record<string, string> | null;
+          p_answers?: Record<string, string> | null;
           p_shoot_location?: string | null;
           p_budget_input?: string | null;
           p_computed_estimate?: number | null;

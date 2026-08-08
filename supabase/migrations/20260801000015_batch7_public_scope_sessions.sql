@@ -105,9 +105,32 @@ create table public.scope_sessions (
   user_id uuid references public.profiles (id) on delete set null,
 
   making_type text,
-  -- The four judgment calls: {"secondCam":"yes","audio":"unsure",…}. jsonb
-  -- rather than four columns because the checklist is the tool's to change.
-  judgment_answers jsonb,
+
+  -- THE WHOLE INTAKE, exactly as the tool holds it, in the tool's own
+  -- vocabulary:
+  --
+  --   {"making":"Brand video","onCamera":"conversation","destination":"website",
+  --    "polish":"standard","count":"4","each":"3","filming":"two","hire":"local",
+  --    "distance":"near","shootLocation":"Richmond, VA",
+  --    "secondCam":"no","audio":"unsure","drone":"yes","graphics":"no"}
+  --
+  -- Not just the four judgment checkboxes. The point of this table is that a
+  -- producer opens one row and has the whole briefing before they dial, and an
+  -- abandoned session is the one thing that can never be backfilled — so
+  -- everything the visitor told us is kept the first time.
+  --
+  -- jsonb rather than a column per question because the intake is the tool's
+  -- to change: engine.ts adds an option or a question and this keeps working
+  -- with no migration. The keys and values ARE engine.ts's — MAKING, QUESTIONS,
+  -- POLISH, COUNT_OPTS, LEN_OPTS, CHECKLIST — so `answers->>'hire' = 'import'`
+  -- groups cleanly and keeps meaning after the on-screen wording is reworded.
+  -- Two keys are codes rather than prose: `count` and `each` are the buckets
+  -- from COUNT_OPTS / LEN_OPTS ("4" = a handful, 4–6; "3" = a few minutes).
+  --
+  -- making and shootLocation are deliberately in here AS WELL as in their own
+  -- columns. The columns are for querying; this is a faithful snapshot of what
+  -- was on screen, and it should not need a second column to be legible.
+  answers jsonb,
   -- The city / metro / zip they typed. NULL means they skipped it, or never
   -- got that far — last_step_reached tells the two apart.
   shoot_location text,
@@ -140,7 +163,7 @@ create table public.scope_sessions (
     and length(coalesce(contact_email, '')) <= 200
     and length(coalesce(contact_phone, '')) <= 40
     and length(coalesce(last_step_reached, '')) <= 80
-    and octet_length(coalesce(judgment_answers, '{}'::jsonb)::text) <= 4000
+    and octet_length(coalesce(answers, '{}'::jsonb)::text) <= 4000
     and octet_length(coalesce(referral_source, '{}'::jsonb)::text) <= 2000
   ),
 
@@ -161,6 +184,12 @@ comment on column public.scope_sessions.session_id is
 comment on column public.scope_sessions.user_id is
   'Stamped from auth.uid() when the visitor is or becomes a member. Set once, '
   'never re-pointed. Never accepted as a parameter.';
+
+comment on column public.scope_sessions.answers is
+  'The complete intake, in engine.ts''s own vocabulary — every question the '
+  'tool asked, not only the judgment checklist. Keys and values come from '
+  'MAKING / QUESTIONS / POLISH / COUNT_OPTS / LEN_OPTS / CHECKLIST, so they '
+  'survive on-screen rewording. This is the pre-call briefing.';
 
 comment on column public.scope_sessions.shoot_location is
   'Exactly what the visitor typed into "Where''s the shoot?". Never derived '
@@ -253,7 +282,7 @@ comment on policy "admins read all scope sessions" on public.scope_sessions is
 create function public.record_scope_session(
   p_session_id uuid,
   p_making_type text default null,
-  p_judgment_answers jsonb default null,
+  p_answers jsonb default null,
   p_shoot_location text default null,
   p_budget_input text default null,
   p_computed_estimate integer default null,
@@ -273,7 +302,7 @@ declare
   v_caller uuid := auth.uid();
   v_owner uuid;
   v_owned boolean;
-  v_judgment jsonb;
+  v_answers jsonb;
   v_referral jsonb;
 begin
   if p_session_id is null then
@@ -296,9 +325,9 @@ begin
   -- Oversized json is dropped rather than raised on. The check constraint
   -- would refuse the row, and a failed capture must never be something the
   -- visitor sees — the estimate is the product, this is our bookkeeping.
-  v_judgment := case
-    when octet_length(coalesce(p_judgment_answers, '{}'::jsonb)::text) <= 4000
-      then p_judgment_answers
+  v_answers := case
+    when octet_length(coalesce(p_answers, '{}'::jsonb)::text) <= 4000
+      then p_answers
   end;
   v_referral := case
     when octet_length(coalesce(p_referral_source, '{}'::jsonb)::text) <= 2000
@@ -309,7 +338,7 @@ begin
     session_id,
     user_id,
     making_type,
-    judgment_answers,
+    answers,
     shoot_location,
     budget_input,
     computed_estimate,
@@ -324,7 +353,7 @@ begin
     p_session_id,
     v_caller,
     left(nullif(btrim(p_making_type), ''), 120),
-    v_judgment,
+    v_answers,
     left(nullif(btrim(p_shoot_location), ''), 160),
     left(nullif(btrim(p_budget_input), ''), 40),
     -- Clamped, not coalesced: GREATEST/LEAST ignore nulls, so the null case
@@ -346,7 +375,14 @@ begin
     -- null -> someone, never someone -> someone else.
     user_id           = coalesce(s.user_id, v_caller),
     making_type       = coalesce(excluded.making_type, s.making_type),
-    judgment_answers  = coalesce(excluded.judgment_answers, s.judgment_answers),
+    -- MERGED, not replaced. The tool sends the whole intake every time, so in
+    -- practice this is a full overwrite — but merging means the same
+    -- "null leaves it alone" rule holds one level down: a caller that sends
+    -- three keys updates three keys and cannot silently drop the other eleven.
+    answers           = case
+                          when excluded.answers is null then s.answers
+                          else coalesce(s.answers, '{}'::jsonb) || excluded.answers
+                        end,
     shoot_location    = coalesce(excluded.shoot_location, s.shoot_location),
     budget_input      = coalesce(excluded.budget_input, s.budget_input),
     computed_estimate = coalesce(excluded.computed_estimate, s.computed_estimate),
@@ -510,7 +546,7 @@ begin
 
   select string_agg(col, ', ')
   into v_missing
-  from unnest(array['id', 'session_id', 'user_id', 'making_type', 'judgment_answers',
+  from unnest(array['id', 'session_id', 'user_id', 'making_type', 'answers',
                     'shoot_location', 'budget_input', 'computed_estimate', 'cta_clicked',
                     'contact_name', 'contact_email', 'contact_phone', 'referral_source',
                     'last_step_reached', 'created_at', 'updated_at']) as col

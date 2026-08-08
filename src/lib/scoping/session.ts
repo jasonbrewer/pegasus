@@ -66,7 +66,8 @@ export async function ensureScopeSessionId(): Promise<string> {
 /** What record_scope_session() will take. Every field is optional; see below. */
 export type ScopeSessionPatch = {
   making_type?: string | null;
-  judgment_answers?: Record<string, string> | null;
+  /** The whole intake in engine.ts's vocabulary, not just the checklist. */
+  answers?: Record<string, string> | null;
   shoot_location?: string | null;
   budget_input?: string | null;
   computed_estimate?: number | null;
@@ -99,7 +100,7 @@ export async function recordScopeSession(
   const { error } = await supabase.rpc("record_scope_session", {
     p_session_id: sessionId,
     p_making_type: patch.making_type ?? null,
-    p_judgment_answers: patch.judgment_answers ?? null,
+    p_answers: patch.answers ?? null,
     p_shoot_location: patch.shoot_location ?? null,
     p_budget_input: patch.budget_input ?? null,
     p_computed_estimate: patch.computed_estimate ?? null,

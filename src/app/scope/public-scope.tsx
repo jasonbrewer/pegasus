@@ -58,12 +58,13 @@ function toInput(progress: ScopeProgress): ScopeProgressInput {
   const { answers } = progress;
   return {
     makingType: answers.making,
-    judgmentAnswers: {
-      secondCam: answers.secondCam,
-      audio: answers.audio,
-      drone: answers.drone,
-      graphics: answers.graphics,
-    },
+    // The WHOLE intake, spread rather than picked apart: a producer opening
+    // this row wants the full briefing, and an abandoned session is the one
+    // thing nobody can go back and ask about. The action validates every key
+    // against engine.ts's own option lists before any of it reaches the
+    // database, so passing the object wholesale is safe and stays correct when
+    // a question is added.
+    answers: { ...answers },
     shootLocation: answers.shootLocation,
     budgetInput: progress.budget,
     computedEstimate: progress.scope.total,

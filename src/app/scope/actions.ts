@@ -9,7 +9,15 @@ import {
   recordScopeSession,
   type ScopeSessionPatch,
 } from "@/lib/scoping/session";
-import { CHECKLIST, TRI_OPTS } from "@/lib/scoping/engine";
+import {
+  CHECKLIST,
+  COUNT_OPTS,
+  LEN_OPTS,
+  MAKING,
+  POLISH,
+  QUESTIONS,
+  TRI_OPTS,
+} from "@/lib/scoping/engine";
 
 /**
  * The write side of the public scope tool.
@@ -40,18 +48,58 @@ const clip = (value: unknown, max: number): string | null => {
   return trimmed === "" ? null : trimmed.slice(0, max);
 };
 
+/**
+ * The allow-list for `answers`, built FROM engine.ts's own option lists rather
+ * than typed out again here.
+ *
+ * That is the point: the intake is the tool's to change, and a hand-copied list
+ * of valid values would be a second source of truth that silently starts
+ * rejecting new options the day someone adds one. Add a question to QUESTIONS
+ * or an option to LEN_OPTS and this accepts it on the next build, with no edit
+ * here and no migration.
+ */
 const TRI_VALUES = new Set(TRI_OPTS.map(([value]) => value as string));
-const CHECKLIST_KEYS = CHECKLIST.map((item) => item.key as string);
 
-/** Rebuilt from the four keys engine.ts defines — never passed through as-is. */
-function cleanJudgment(input: unknown): Record<string, string> | null {
+const ANSWER_VALUES: Record<string, Set<string>> = {
+  // onCamera, destination, filming, hire, distance
+  ...Object.fromEntries(
+    QUESTIONS.map((q) => [q.key as string, new Set(q.opts.map(([value]) => value))])
+  ),
+  polish: new Set(POLISH.map((p) => p.key as string)),
+  count: new Set(COUNT_OPTS.map(([value]) => value as string)),
+  each: new Set(LEN_OPTS.map(([value]) => value as string)),
+  // secondCam, audio, drone, graphics — all three-state
+  ...Object.fromEntries(CHECKLIST.map((item) => [item.key as string, TRI_VALUES])),
+};
+
+const MAKING_LABELS = new Set(MAKING.map((m) => m.label));
+
+/**
+ * The complete intake, rebuilt key by key — never passed through as-is.
+ *
+ * An unknown key is dropped and an unrecognised value is dropped, so what
+ * reaches the database is always something the tool could actually have
+ * produced. A stranger POSTing at this action cannot use `answers` as a
+ * free-text jsonb column.
+ */
+function cleanAnswers(input: unknown): Record<string, string> | null {
   if (!input || typeof input !== "object") return null;
   const source = input as Record<string, unknown>;
   const out: Record<string, string> = {};
-  for (const key of CHECKLIST_KEYS) {
+
+  // The two that aren't a pick from a fixed list: one is a label from a known
+  // set, the other is whatever they typed into "Where's the shoot?".
+  const making = clip(source.making, 120);
+  if (making && MAKING_LABELS.has(making)) out.making = making;
+
+  const shootLocation = clip(source.shootLocation, 160);
+  if (shootLocation) out.shootLocation = shootLocation;
+
+  for (const [key, allowed] of Object.entries(ANSWER_VALUES)) {
     const value = source[key];
-    if (typeof value === "string" && TRI_VALUES.has(value)) out[key] = value;
+    if (typeof value === "string" && allowed.has(value)) out[key] = value;
   }
+
   return Object.keys(out).length > 0 ? out : null;
 }
 
@@ -92,7 +140,8 @@ function cleanEstimate(input: unknown): number | null {
 /** The answer fields the tool sends as it goes. */
 export type ScopeProgressInput = {
   makingType?: unknown;
-  judgmentAnswers?: unknown;
+  /** The whole intake, not just the judgment checklist. */
+  answers?: unknown;
   shootLocation?: unknown;
   budgetInput?: unknown;
   computedEstimate?: unknown;
@@ -102,7 +151,7 @@ export type ScopeProgressInput = {
 function patchFromProgress(input: ScopeProgressInput): ScopeSessionPatch {
   return {
     making_type: clip(input.makingType, 120),
-    judgment_answers: cleanJudgment(input.judgmentAnswers),
+    answers: cleanAnswers(input.answers),
     shoot_location: clip(input.shootLocation, 160),
     budget_input: clip(input.budgetInput, 40),
     computed_estimate: cleanEstimate(input.computedEstimate),

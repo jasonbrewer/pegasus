@@ -135,12 +135,14 @@ functions. Summary:
   and free).
 - **`zip_codes`** — 42,249 US ZIP centroids. Every ZIP a user submits is resolved against this
   table; see [ZIP geocoding](#zip-geocoding).
-- **`scope_sessions`** — one row per visit to the public scoping tool at `/scope`: what they're
-  making, the judgment-call answers, where the shoot is, the budget they typed, the estimate the
-  tool produced, which CTA they pressed, and their contact details once given. Written as they
-  answer rather than on submit, so an abandoned session still leaves the answers behind. Written
-  **only** through `record_scope_session()` and readable **only** by an admin — see
-  [The public scope tool](#the-public-scope-tool).
+- **`scope_sessions`** — one row per visit to the public scoping tool at `/scope`. `answers` holds
+  the **complete intake** as a jsonb snapshot in `engine.ts`'s own vocabulary (every question, not
+  just the judgment checklist), alongside columns for where the shoot is, the budget they typed,
+  the estimate the tool produced, which CTA they pressed, how far they got, and their contact
+  details once given. Written as they answer rather than on submit, so an abandoned session still
+  leaves the answers behind — which matters because it's the one thing that can never be
+  backfilled. Written **only** through `record_scope_session()` and readable **only** by an admin
+  — see [The public scope tool](#the-public-scope-tool).
 
 ### Geo matching
 
@@ -219,11 +221,17 @@ There is no admin UI for these leads yet — read them from the Supabase SQL edi
 
 ```sql
 select created_at, contact_name, contact_email, contact_phone, making_type,
-       shoot_location, budget_input, computed_estimate, judgment_answers, referral_source
+       shoot_location, budget_input, computed_estimate, answers, referral_source
 from public.scope_sessions
 where cta_clicked = 'call_me'
 order by created_at desc;
 ```
+
+`answers` is the whole intake, keyed and valued in `src/lib/scoping/engine.ts`'s vocabulary, so it
+groups cleanly and keeps its meaning after the on-screen wording changes — e.g.
+`where answers->>'hire' = 'import'` for the jobs open to bringing crew in. Two keys are bucket
+codes rather than prose: `count` (`COUNT_OPTS` — `"4"` = a handful, 4–6) and `each` (`LEN_OPTS` —
+`"3"` = a few minutes).
 
 ## Access control: a curated community
 

@@ -139,11 +139,23 @@ begin
     p_making_type       => 'Brand video',
     p_last_step_reached => '02/06 Where it lives'
   );
+  -- The whole intake, as the tool sends it: every question, not just the four
+  -- judgment checkboxes.
   perform public.record_scope_session(
-    p_session_id        => '5e551011-0000-4000-8000-00000000000a',
-    p_shoot_location    => 'Richmond, VA',
-    p_judgment_answers  => '{"secondCam":"no","audio":"unsure","drone":"yes","graphics":"no"}'::jsonb,
+    p_session_id     => '5e551011-0000-4000-8000-00000000000a',
+    p_shoot_location => 'Richmond, VA',
+    p_answers        => '{"making":"Brand video","onCamera":"conversation",
+                          "destination":"website","polish":"standard",
+                          "count":"4","each":"3","filming":"two","hire":"local",
+                          "distance":"near","shootLocation":"Richmond, VA",
+                          "secondCam":"no","audio":"unsure","drone":"yes",
+                          "graphics":"no"}'::jsonb,
     p_last_step_reached => '03/06 The shoot'
+  );
+  -- A later partial save must not drop the eleven keys it didn't mention.
+  perform public.record_scope_session(
+    p_session_id => '5e551011-0000-4000-8000-00000000000a',
+    p_answers    => '{"drone":"no","graphics":"yes"}'::jsonb
   );
   -- The budget, then abandonment. This is the case the whole design exists for.
   perform public.record_scope_session(
@@ -166,7 +178,7 @@ end $$;
 reset role;
 
 do $$
-declare r public.scope_sessions%rowtype; n int;
+declare r public.scope_sessions%rowtype; n int; missing text;
 begin
   select count(*) into n from public.scope_sessions;
   if n <> 2 then
@@ -187,9 +199,33 @@ begin
   if r.computed_estimate <> 4870 then
     raise exception 'FAIL 3d: computed_estimate is %', r.computed_estimate;
   end if;
-  if r.judgment_answers ->> 'audio' <> 'unsure' then
-    raise exception 'FAIL 3e: judgment_answers did not land';
+  -- ---- the whole intake, not just the checklist --------------------------
+  select string_agg(k, ', ' order by k)
+  into missing
+  from unnest(array['making', 'onCamera', 'destination', 'polish', 'count', 'each',
+                    'filming', 'hire', 'distance', 'shootLocation',
+                    'secondCam', 'audio', 'drone', 'graphics']) as k
+  where not (r.answers ? k);
+
+  if missing is not null then
+    raise exception 'FAIL 3e: answers is missing intake key(s): % — this table is the '
+                    'pre-call briefing and an abandoned session cannot be backfilled', missing;
   end if;
+
+  if r.answers ->> 'audio' <> 'unsure' or r.answers ->> 'onCamera' <> 'conversation'
+     or r.answers ->> 'each' <> '3' then
+    raise exception 'FAIL 3e2: answers landed with the wrong values (%)', r.answers::text;
+  end if;
+
+  -- The partial save merged rather than replaced: it changed its two keys and
+  -- left the other twelve alone.
+  if r.answers ->> 'drone' <> 'no' or r.answers ->> 'graphics' <> 'yes' then
+    raise exception 'FAIL 3e3: the partial answers save did not apply';
+  end if;
+  if r.answers ->> 'making' <> 'Brand video' then
+    raise exception 'FAIL 3e4: a partial answers save replaced the whole object';
+  end if;
+  raise notice 'PASS 3e the full intake is captured, and a partial save merges into it';
   if r.referral_source ->> 'utm_source' <> 'seo' then
     raise exception 'FAIL 3f: referral_source did not land';
   end if;
