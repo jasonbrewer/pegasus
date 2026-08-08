@@ -52,7 +52,7 @@
 
 .eyebrow {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 14px;
+  font-size: 0.875rem;
   /* Eased from 0.2em. Wide tracking is what makes small uppercase hard to
      read — the eye stops parsing words and starts parsing letters. Bigger
      AND tighter, not just bigger. */
@@ -75,8 +75,8 @@
   background: var(--surface);
   color: var(--content);
   border-radius: 999px;
-  padding: 11px 17px;
-  font-size: 16px;
+  padding: 0.6875rem 1.0625rem;
+  font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.12s;
@@ -114,7 +114,7 @@
   background: var(--surface);
   color: var(--content);
   border-radius: 12px;
-  padding: 12px 15px;
+  padding: 0.75rem 0.9375rem;
   cursor: pointer;
   transition: all 0.12s;
   text-align: left;
@@ -171,7 +171,7 @@
   border-radius: 10px;
   background: var(--surface);
   overflow: hidden;
-  max-width: 190px;
+  max-width: 11.875rem;
 }
 .money:focus-within {
   outline: 2.5px solid var(--focus);
@@ -180,9 +180,9 @@
 }
 .pfx {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 17px;
+  font-size: 1.0625rem;
   color: var(--muted);
-  padding: 11px 4px 11px 13px;
+  padding: 0.6875rem 0.25rem 0.6875rem 0.8125rem;
   user-select: none;
 }
 .money input {
@@ -191,8 +191,8 @@
   border: none;
   outline: none;
   background: transparent;
-  padding: 11px 13px 11px 2px;
-  font-size: 18px;
+  padding: 0.6875rem 0.8125rem 0.6875rem 0.125rem;
+  font-size: 1.125rem;
   width: 100%;
   color: var(--content);
 }
@@ -204,10 +204,10 @@
   border-radius: 10px;
   background: var(--surface);
   color: var(--content);
-  padding: 11px 13px;
-  font-size: 17px;
+  padding: 0.6875rem 0.8125rem;
+  font-size: 1.0625rem;
   width: 100%;
-  max-width: 340px;
+  max-width: 21.25rem;
 }
 /* The same field with its cap lifted, for stacked form rows that should fill
    their card rather than sit in a short box. Declared after .text so it wins
@@ -227,10 +227,10 @@
 
 .chip {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 7px 13px;
+  padding: 0.4375rem 0.8125rem;
   border: 1.5px solid var(--field);
   border-radius: 999px;
   background: var(--surface);
@@ -252,9 +252,9 @@
   background: var(--teach-soft);
   border-left: 3px solid var(--teach);
   border-radius: 0 8px 8px 0;
-  padding: 11px 14px;
+  padding: 0.6875rem 0.875rem;
   color: var(--content);
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.5;
 }
 
@@ -300,8 +300,8 @@
   border-radius: 6px;
   background: var(--accent);
   color: var(--accent-ink);
-  padding: 10px 19px;
-  font-size: 16px;
+  padding: 0.625rem 1.1875rem;
+  font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   border: none;
@@ -314,8 +314,8 @@
   border: 1px solid var(--field);
   background: transparent;
   color: var(--content);
-  padding: 10px 17px;
-  font-size: 16px;
+  padding: 0.625rem 1.0625rem;
+  font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
 }

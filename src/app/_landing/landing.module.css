@@ -27,11 +27,22 @@
   display:flex;flex-direction:column;align-items:center;
   text-align:center;padding:72px 0 96px;
 }
-.hero .wrap{display:flex;flex-direction:column;align-items:center;}
+/*
+ * `width:100%` is load-bearing. .hero is itself a centred column flex, so its
+ * child .wrap was being sized to FIT-CONTENT — the width of its widest line —
+ * rather than to the viewport. On a 320px phone that made the wrap 344px and
+ * pushed the headline off the right edge.
+ *
+ * This was already true before the base type size went up (17px of overflow at
+ * 320px); raising the root turned it into 52px, because .title's cap is 16ch
+ * and a ch grows with the root. Both are fixed here.
+ */
+.hero .wrap{display:flex;flex-direction:column;align-items:center;width:100%;}
+.hero .wrap > *{max-width:100%;}
 
 .eyebrow{
   font-family:var(--font-geist-mono), monospace;
-  font-weight:500;font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:500;font-size:0.75rem;letter-spacing:.22em;text-transform:uppercase;
   color:var(--brass);display:inline-flex;align-items:center;gap:10px;
 }
 .eyebrow::before,.eyebrow::after{content:"";width:22px;height:1px;background:var(--mist);}
@@ -39,8 +50,20 @@
 .title{
   font-family:var(--font-fraunces), Georgia, serif;
   font-weight:500;font-size:clamp(2.75rem,6vw,4.75rem);
-  line-height:1.05;letter-spacing:-.02em;margin:20px auto 0;max-width:16ch;text-wrap:balance;
+  line-height:1.05;letter-spacing:-.02em;margin:20px auto 0;
+  /* 16ch for the measure, never wider than the column it sits in. */
+  max-width:min(16ch,100%);text-wrap:balance;
+  /* Safety net, not the plan: with the floor below, no word should need to
+     break. It guarantees a long one can never push the page sideways. */
+  overflow-wrap:break-word;
 }
+/* The clamp floor is 2.75rem, which at the raised root is ~49px — wider than
+   the longest word in the headline fits on a 320px phone. Only the smallest
+   class of screen needs the floor lowered; 390px and up keep the full size. */
+@media (max-width:360px){
+  .title{font-size:2.25rem;}
+}
+
 .irisHero{width:52px;height:52px;margin:30px auto 12px;display:block;color:var(--pine);}
 .payoff{
   font-family:var(--font-fraunces), Georgia, serif;font-style:italic;font-weight:500;
@@ -49,7 +72,7 @@
 
 .ctaRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:30px;}
 .btn{
-  font-weight:600;font-size:15.5px;border-radius:999px;padding:15px 30px;line-height:1;
+  font-weight:600;font-size:0.97rem;border-radius:999px;padding:15px 30px;line-height:1;
   text-decoration:none;display:inline-flex;align-items:center;gap:9px;border:1.5px solid transparent;
   transition:transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
 }
@@ -59,14 +82,14 @@
 .btnGhost{background:transparent;color:var(--ink);border-color:var(--ink);}
 .btnGhost:hover{background:var(--ink);color:var(--paper);transform:translateY(-1px);}
 
-.reassure{margin:26px auto 0;font-size:14px;color:var(--stone);display:inline-flex;align-items:center;gap:9px;}
+.reassure{margin:26px auto 0;font-size:0.875rem;color:var(--stone);display:inline-flex;align-items:center;gap:9px;}
 .tick{color:var(--brass);font-family:var(--font-geist-mono), monospace;}
 
 /* ---- Differentiators ---- */
 .diff{padding:40px 0 40px;}
 .sectionHead{display:flex;align-items:baseline;gap:18px;margin-bottom:38px;}
 .label{
-  font-family:var(--font-geist-mono), monospace;font-size:12px;font-weight:500;
+  font-family:var(--font-geist-mono), monospace;font-size:0.75rem;font-weight:500;
   letter-spacing:.2em;text-transform:uppercase;color:var(--stone);white-space:nowrap;
 }
 .rule{flex:1;height:1px;background:var(--mist);align-self:center;}
@@ -94,7 +117,7 @@
 /* ---- Article (How we operate) ---- */
 .article{padding:74px 0 20px;}
 .backlink{
-  font-family:var(--font-geist-mono), monospace;font-size:12px;letter-spacing:.12em;
+  font-family:var(--font-geist-mono), monospace;font-size:0.75rem;letter-spacing:.12em;
   text-transform:uppercase;color:var(--stone);text-decoration:none;display:inline-flex;
   align-items:center;gap:8px;margin-bottom:34px;
 }
