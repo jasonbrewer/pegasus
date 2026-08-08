@@ -194,6 +194,27 @@
   color: var(--content);
 }
 
+/* Free-text field — the one question with no options to pick from. Matches the
+   money input's frame so the two read as the same kind of control. */
+.text {
+  border: 1.5px solid var(--field);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--content);
+  padding: 10px 12px;
+  font-size: 16px;
+  width: 100%;
+  max-width: 320px;
+}
+.text::placeholder {
+  color: var(--muted);
+}
+.text:focus {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 1px;
+  border-color: var(--strong);
+}
+
 .chip {
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;

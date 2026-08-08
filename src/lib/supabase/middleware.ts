@@ -9,9 +9,16 @@ import { NextResponse, type NextRequest } from "next/server";
 // expired back to /forgot-password saying so, rather than to a generic "sign
 // in to continue" that is useless to somebody who cannot remember their
 // password. Gating it here would make that message unreachable.
+// /scope is the public scoping tool: a signed-out buyer gets a full estimate
+// with no account, and the "have a producer call me" CTA is the funnel into
+// the marketplace. It is a second door to the same tool, NOT a hole in the
+// existing one — /dashboard/employer/scope keeps its guard, and nothing behind
+// the login is reachable from here. The server actions it posts to are on this
+// same path, which is why they are reachable signed out too.
 const PUBLIC_PATHS = new Set([
   "/",
   "/how-we-operate",
+  "/scope",
   "/sign-in",
   "/sign-up",
   "/forgot-password",

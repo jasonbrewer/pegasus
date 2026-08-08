@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { lookupZip, INVALID_ZIP_MESSAGE } from "@/lib/geocode";
 import { parseInviteRef } from "@/lib/invite";
+import { claimScopeSessionForCaller } from "@/lib/scoping/session";
 import type { AccountRole, EmailOtpType } from "@/types/database";
 
 export async function signUp(formData: FormData) {
@@ -58,6 +59,13 @@ export async function signUp(formData: FormData) {
     redirect(`/sign-up?role=${role}&error=${encodeURIComponent(error.message)}`);
   }
 
+  // If they scoped a job at /scope before signing up, link that anonymous
+  // session to the account they just made. Best effort and silent: signup does
+  // not fail because a lead row went unstamped, and if email confirmation is
+  // on there is no session yet to stamp with — signIn below catches that case
+  // on their first real login, since the cookie outlives the visit.
+  await claimScopeSessionForCaller(supabase);
+
   redirect("/dashboard");
 }
 
@@ -84,6 +92,9 @@ export async function signIn(formData: FormData) {
     if (next !== "/dashboard") params.set("next", next);
     redirect(`/sign-in?${params.toString()}`);
   }
+
+  // The other half of "during or after the session" — see signUp above.
+  await claimScopeSessionForCaller(supabase);
 
   redirect(next);
 }

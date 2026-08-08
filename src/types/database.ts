@@ -19,6 +19,8 @@ export type PaymentStatus = "unpaid" | "paid" | "waived";
 export type ApplicationStatus = "submitted" | "shortlisted" | "rejected" | "hired";
 /** 9.1 — whether an account may take part in the marketplace at all. */
 export type AccountStatus = "pending" | "approved" | "blocked";
+/** Batch 7 — which end CTA a public scoping session pressed. Null = neither. */
+export type ScopeCta = "call_me" | "signup";
 
 export interface Database {
   public: {
@@ -288,6 +290,45 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      // Batch 7 — the public scope tool's lead capture.
+      //
+      // Insert and Update are `never` on purpose, and not because the table is
+      // immutable. Neither anon nor authenticated holds ANY write privilege on
+      // it: the only write path is the record_scope_session() RPC below, so
+      // `.from("scope_sessions").insert(...)` is code that cannot work, and
+      // the type says so before it ships.
+      //
+      // Row is readable only by an admin (RLS), which is why it is typed at
+      // all — a moderation view would select it.
+      scope_sessions: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string | null;
+          making_type: string | null;
+          /**
+           * The complete intake in engine.ts's vocabulary — every question the
+           * tool asked, not only the judgment checklist. Keys and values come
+           * from MAKING / QUESTIONS / POLISH / COUNT_OPTS / LEN_OPTS /
+           * CHECKLIST, so they survive an on-screen rewording.
+           */
+          answers: Record<string, string> | null;
+          shoot_location: string | null;
+          budget_input: string | null;
+          computed_estimate: number | null;
+          cta_clicked: ScopeCta | null;
+          contact_name: string | null;
+          contact_email: string | null;
+          contact_phone: string | null;
+          referral_source: Record<string, string> | null;
+          last_step_reached: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -352,6 +393,31 @@ export interface Database {
       is_participating: {
         Args: { p_profile_id: string };
         Returns: boolean;
+      };
+      /**
+       * Batch 7 — the ONLY write path to scope_sessions, for anonymous and
+       * signed-in callers alike. Upserts the single row named by p_session_id.
+       * A null argument leaves the stored value alone rather than clearing it.
+       * user_id is taken from auth.uid() inside the function and is
+       * deliberately not a parameter.
+       */
+      record_scope_session: {
+        Args: {
+          p_session_id: string;
+          p_making_type?: string | null;
+          p_answers?: Record<string, string> | null;
+          p_shoot_location?: string | null;
+          p_budget_input?: string | null;
+          p_computed_estimate?: number | null;
+          p_cta_clicked?: ScopeCta | null;
+          p_contact_name?: string | null;
+          p_contact_email?: string | null;
+          p_contact_phone?: string | null;
+          p_referral_source?: Record<string, string> | null;
+          p_last_step_reached?: string | null;
+        };
+        /** void — it can never be used to read a row back. */
+        Returns: undefined;
       };
     };
   };

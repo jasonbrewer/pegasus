@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, ButtonLink } from "@/components/ui";
-import { ScopeTool } from "./scope-tool";
+import { ScopeTool } from "@/components/scope/scope-tool";
 
 /**
  * "Scope a job" — an honest, tiered, line-item estimate for a buyer who has
@@ -19,6 +19,12 @@ import { ScopeTool } from "./scope-tool";
  *
  * The tool itself is a client component and the rates are a build-time import,
  * so this page's only Supabase call is the auth guard above.
+ *
+ * The tool now lives in components/scope because /scope — the public, no-login
+ * version — renders the same component. Same questions, same rate sheet, same
+ * arithmetic on both routes, by construction. What that page adds (saving the
+ * session, the producer-call CTA) it adds through props; none of it reaches
+ * here, and this page passes none of them.
  */
 export default async function ScopeJobPage() {
   const supabase = await createClient();

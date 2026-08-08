@@ -50,6 +50,18 @@ export type Answers = {
   polish: PolishKey;
   count: CountKey;
   each: LengthKey;
+  /**
+   * Where the shoot is — a city, a metro or a zip, exactly as typed. Free text
+   * on purpose: it is not geocoded, not validated against the zip table, and
+   * never inferred from an IP address. Empty string means "not sure yet",
+   * which is a real answer here and not a missing one.
+   *
+   * It earns its place in the intake twice over. For the buyer it anchors the
+   * travel questions below it — travel is priced off `hire` and `distance`,
+   * and those two read as abstractions until there is a place attached. For
+   * us it is the first thing anyone needs in order to line up crew.
+   */
+  shootLocation: string;
 } & Record<ChecklistKey, TriState>;
 
 export type ScopeLine = { key: string; amt: number; simple: string };
@@ -246,6 +258,7 @@ export const DEFAULTS: Answers = {
   polish: "standard",
   count: "1",
   each: "3",
+  shootLocation: "",
   secondCam: "no",
   audio: "no",
   drone: "no",
@@ -435,10 +448,19 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
     );
   }
 
-  /* Travel — surfaced as an owned decision, not a surprise on the invoice. */
+  /* Travel — surfaced as an owned decision, not a surprise on the invoice.
+
+     The place they named does not move the maths — travel is priced off `hire`
+     and `distance`, and it always was. What it moves is whether these notes
+     are about anybody in particular. "Hiring local" is an abstraction until
+     there is a town attached to it. */
+  const place = a.shootLocation.trim();
+
   if (a.hire === "local" || a.distance === "near") {
     notes.push(
-      "Hiring local keeps travel off the sheet entirely. Open up to bringing someone in and you'd add travel days, maybe a hotel."
+      place
+        ? `Hiring local to ${place} keeps travel off the sheet entirely. Open up to bringing someone in and you'd add travel days, maybe a hotel.`
+        : "Hiring local keeps travel off the sheet entirely. Open up to bringing someone in and you'd add travel days, maybe a hotel."
     );
   } else if (a.distance === "drive1") {
     lines.push({ key: "travel", amt: r.driveAllow, simple: "Travel — regional drive" });
@@ -484,7 +506,20 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
     assumptions.push(say("This quote assumes no motion graphics or titles", a.graphics));
   }
   if (!has("lic")) assumptions.push(say("This quote assumes no licensed music"));
-  if (!has("travel")) assumptions.push(say("This quote assumes no travel"));
+  if (!has("travel")) {
+    assumptions.push(
+      say(
+        place
+          ? `This quote assumes no travel — crew already in or near ${place}`
+          : "This quote assumes no travel"
+      )
+    );
+  }
+  if (!place) {
+    assumptions.push(
+      say("This quote assumes a typical location — you haven't said where the shoot is yet")
+    );
+  }
   if (editDays === 1) {
     assumptions.push(say("This quote assumes one round to final cut, then hourly for changes"));
   }
