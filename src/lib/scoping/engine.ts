@@ -314,6 +314,26 @@ export function autoRules(a: Answers): Record<"secondCam" | "audio" | "graphics"
 
 export const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 
+/**
+ * The ONE place that decides whether a budget was actually given.
+ *
+ * Blank, "0", "000" and "Not sure yet" are all the same answer — "I haven't
+ * got a number for you" — and all three return null. That is not tidiness: a
+ * literal 0 landing in the leads table reads as a real $0 budget and wrecks
+ * the budget-against-estimate comparison the call list is sorted on. Nobody
+ * commissioning a video has a budget of zero; they have no budget yet.
+ *
+ * Everything that asks "did they tell us a budget?" goes through this — the
+ * estimate panel, the variant fitting, and the session capture — so the
+ * screen, the number and the stored row can never disagree about it.
+ */
+export function parseBudget(input: string): number | null {
+  const digits = input.replace(/[^0-9]/g, "");
+  if (digits === "") return null;
+  const value = Number(digits);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   const r = Object.fromEntries(Object.entries(B).map(([k, o]) => [k, o.v])) as Record<
     BaselineKey,

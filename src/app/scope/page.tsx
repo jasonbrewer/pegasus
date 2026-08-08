@@ -54,12 +54,12 @@ export default function PublicScopePage() {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           What should your video cost?
         </h1>
-        <p className="mt-3 max-w-2xl text-base text-secondary">
+        <p className="mt-3 max-w-2xl text-lg text-secondary">
           Answer a few plain questions — no production jargon, no account, no email required.
           You&apos;ll get an honest estimate and an itemised breakdown, and you&apos;ll see where
           the real costs hide, so you walk into any quote already knowing the shape of the job.
         </p>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
+        <p className="mt-2 max-w-2xl text-base text-muted">
           Built by the people who run the crew. Free, and yours to keep whether or not you ever
           talk to us.
         </p>

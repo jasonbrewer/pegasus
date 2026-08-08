@@ -52,8 +52,11 @@
 
 .eyebrow {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: 14px;
+  /* Eased from 0.2em. Wide tracking is what makes small uppercase hard to
+     read — the eye stops parsing words and starts parsing letters. Bigger
+     AND tighter, not just bigger. */
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -72,8 +75,8 @@
   background: var(--surface);
   color: var(--content);
   border-radius: 999px;
-  padding: 9px 15px;
-  font-size: 14px;
+  padding: 11px 17px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.12s;
@@ -168,7 +171,7 @@
   border-radius: 10px;
   background: var(--surface);
   overflow: hidden;
-  max-width: 170px;
+  max-width: 190px;
 }
 .money:focus-within {
   outline: 2.5px solid var(--focus);
@@ -177,9 +180,9 @@
 }
 .pfx {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 15px;
+  font-size: 17px;
   color: var(--muted);
-  padding: 10px 4px 10px 12px;
+  padding: 11px 4px 11px 13px;
   user-select: none;
 }
 .money input {
@@ -188,8 +191,8 @@
   border: none;
   outline: none;
   background: transparent;
-  padding: 10px 12px 10px 2px;
-  font-size: 16px;
+  padding: 11px 13px 11px 2px;
+  font-size: 18px;
   width: 100%;
   color: var(--content);
 }
@@ -201,11 +204,18 @@
   border-radius: 10px;
   background: var(--surface);
   color: var(--content);
-  padding: 10px 12px;
-  font-size: 16px;
+  padding: 11px 13px;
+  font-size: 17px;
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
 }
+/* The same field with its cap lifted, for stacked form rows that should fill
+   their card rather than sit in a short box. Declared after .text so it wins
+   on equal specificity. */
+.textFull {
+  max-width: none;
+}
+
 .text::placeholder {
   color: var(--muted);
 }
@@ -217,10 +227,10 @@
 
 .chip {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 6px 11px;
+  padding: 7px 13px;
   border: 1.5px solid var(--field);
   border-radius: 999px;
   background: var(--surface);
@@ -242,10 +252,10 @@
   background: var(--teach-soft);
   border-left: 3px solid var(--teach);
   border-radius: 0 8px 8px 0;
-  padding: 9px 12px;
+  padding: 11px 14px;
   color: var(--content);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 /* Shown when the stated budget can't buy even the lean scope. */
@@ -290,8 +300,8 @@
   border-radius: 6px;
   background: var(--accent);
   color: var(--accent-ink);
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 10px 19px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   border: none;
@@ -304,8 +314,8 @@
   border: 1px solid var(--field);
   background: transparent;
   color: var(--content);
-  padding: 8px 14px;
-  font-size: 14px;
+  padding: 10px 17px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
 }

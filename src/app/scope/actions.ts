@@ -14,6 +14,7 @@ import {
   COUNT_OPTS,
   LEN_OPTS,
   MAKING,
+  parseBudget,
   POLISH,
   QUESTIONS,
   TRI_OPTS,
@@ -132,6 +133,23 @@ function cleanReferral(input: unknown): Record<string, string> | null {
   return Object.keys(out).length > 0 ? out : null;
 }
 
+/**
+ * "No budget given" collapses to null here as well as in the tool.
+ *
+ * The page already normalises before it posts; this is the boundary version,
+ * because a server action is a public endpoint and the leads table is only
+ * worth reading if a $0 in it means somebody genuinely said zero. Nobody ever
+ * did — parseBudget is the same rule the estimate panel uses on screen.
+ */
+function cleanBudget(input: unknown): string | null {
+  if (typeof input === "number") {
+    return input > 0 && Number.isFinite(input) ? String(Math.round(input)) : null;
+  }
+  if (typeof input !== "string") return null;
+  const value = parseBudget(input.slice(0, 40));
+  return value === null ? null : String(value);
+}
+
 function cleanEstimate(input: unknown): number | null {
   if (typeof input !== "number" || !Number.isFinite(input)) return null;
   return Math.min(Math.max(Math.round(input), 0), 10_000_000);
@@ -153,7 +171,7 @@ function patchFromProgress(input: ScopeProgressInput): ScopeSessionPatch {
     making_type: clip(input.makingType, 120),
     answers: cleanAnswers(input.answers),
     shoot_location: clip(input.shootLocation, 160),
-    budget_input: clip(input.budgetInput, 40),
+    budget_input: cleanBudget(input.budgetInput),
     computed_estimate: cleanEstimate(input.computedEstimate),
     last_step_reached: clip(input.lastStepReached, 80),
   };
