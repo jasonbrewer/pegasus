@@ -166,6 +166,38 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * THE BASE TYPE SIZE FOR THE WHOLE SITE.
+ *
+ * Until now nothing set this anywhere — no html rule, no body font-size, no
+ * Tailwind base layer (v4 is CSS-first and there is no tailwind.config). The
+ * site simply inherited the browser default of 16px, and every rem-sized
+ * utility in the app resolved against that.
+ *
+ * A PERCENTAGE, NOT `18px`. They are the same thing for the majority who never
+ * touch their browser settings — 112.5% of 16 is 18. They are not the same
+ * thing for anyone who has already set a larger default because they need one:
+ * `font-size: 18px` OVERRIDES that person's preference and can make the site
+ * smaller than they asked for, while a percentage scales from whatever they
+ * chose. Someone running a 20px default gets 22.5px here. That is the whole
+ * reason this is a ratio.
+ *
+ * Everything sized in rem/em moves with it, which is nearly all of the app:
+ * every Tailwind text-* utility (and every Tailwind spacing utility, so type
+ * and padding grow together rather than text swelling inside boxes that stayed
+ * put), plus both CSS modules — their font sizes were converted from px to rem
+ * alongside this change, or the scope tool and the landing hero would have
+ * been the two places on the site that did NOT get bigger.
+ *
+ * scope.module.css converts its control padding too, since a pill's box should
+ * track its label. landing.module.css keeps its px spacing on purpose: that is
+ * a bespoke hero composition, not type-relative rhythm, and its headings were
+ * already clamp(rem) so they scale on their own.
+ */
+html {
+  font-size: 112.5%; /* 18px at the 16px browser default */
+}
+
 body {
   background: var(--canvas);
   color: var(--content);
