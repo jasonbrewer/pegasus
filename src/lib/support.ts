@@ -9,7 +9,7 @@
  * NEXT_PUBLIC_ because the footer renders on public pages too.
  */
 export const MODERATOR_EMAIL =
-  process.env.NEXT_PUBLIC_MODERATOR_EMAIL?.trim() || "help@productioncircles.com";
+  process.env.NEXT_PUBLIC_MODERATOR_EMAIL?.trim() || "info@productioncircles.com";
 
 /** Prefills the subject so the moderator can triage without opening every mail. */
 export function moderatorMailto(subject = "Help with my Production Circles account"): string {
