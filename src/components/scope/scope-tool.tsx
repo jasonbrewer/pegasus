@@ -10,6 +10,7 @@ import {
   DEFAULTS,
   LEN_OPTS,
   MAKING,
+  parseBudget,
   POLISH,
   QUESTIONS,
   TRI_OPTS,
@@ -113,7 +114,7 @@ function MakingPicker({ value, onPick }: { value: string; onPick: Pick }) {
           </button>
         ))}
       </div>
-      <p className={`mt-2 text-sm ${styles.muted}`}>
+      <p className={`mt-2 text-base ${styles.muted}`}>
         Pick the closest — most of these film about the same way, so the price won&apos;t swing
         much.
       </p>
@@ -155,7 +156,7 @@ function PolishPicker({ value, onPick }: { value: string; onPick: Pick }) {
   return (
     <fieldset className="mb-7">
       <legend className={`${styles.eyebrow} mb-2`}>How finished should it feel?</legend>
-      <p className={`mb-2 text-sm ${styles.muted}`}>
+      <p className={`mb-2 text-base ${styles.muted}`}>
         Roughly: further down means more editing polish, and more cost. Pick the feel you&apos;re
         after.
       </p>
@@ -174,8 +175,8 @@ function PolishPicker({ value, onPick }: { value: string; onPick: Pick }) {
             data-on={value === p.key}
             onClick={() => onPick("polish", p.key)}
           >
-            <span className="mb-1 block text-sm font-semibold">{p.title}</span>
-            <span className={`block text-xs ${styles.muted}`} style={{ lineHeight: 1.4 }}>
+            <span className="mb-1 block text-base font-semibold">{p.title}</span>
+            <span className={`block text-sm ${styles.muted}`} style={{ lineHeight: 1.45 }}>
               {p.note}
             </span>
           </button>
@@ -190,8 +191,8 @@ function PolishPicker({ value, onPick }: { value: string; onPick: Pick }) {
  *
  * Sits with the other project questions rather than on the opening screen: on
  * screen one it reads as a form asking who you are, which is the thing this
- * tool spent five steps not doing. Here it reads as part of describing the job,
- * and it is the question the travel answers underneath it hang off.
+ * tool goes out of its way not to do. Here it reads as part of describing the
+ * job, and it is the question the travel answers underneath it hang off.
  *
  * "Not sure yet" is a real button and stores nothing. Plenty of people are
  * scoping before they have picked a venue, and a tool that will not move until
@@ -216,7 +217,7 @@ function LocationPicker({
   return (
     <fieldset className="mb-7">
       <legend className={`${styles.eyebrow} mb-2`}>Where&apos;s the shoot?</legend>
-      <p className={`mb-3 text-sm ${styles.muted}`}>
+      <p className={`mb-3 text-base ${styles.muted}`}>
         A city, a metro, or a zip is plenty. It decides who&apos;s close enough to shoot it — and
         whether anyone has to travel.
       </p>
@@ -252,11 +253,18 @@ function LocationPicker({
 /**
  * The budget question.
  *
- * Placed last, and deliberately not first. Asked on the opening screen it is a
- * qualifying question and people either round it or lie; asked here, after
- * they have described the job and watched the number move, it is the number
- * they actually have. It is still optional, and the tool is fully usable
- * without it — nothing below refuses to render because this is blank.
+ * Asked EARLY — straight after "what are you making" — and deliberately not at
+ * the end. The estimate panel is live from the first screen, so a budget asked
+ * last is a budget anchored to a fully-formed number already sitting next to
+ * the field: people revise towards it, upwards or downwards, and what you get
+ * back is a reflection of our own arithmetic. Asked here, while the running
+ * number is still partial, it is the figure they walked in with.
+ *
+ * Still optional, still never forced, and the tool is fully usable without it.
+ *
+ * Blank, 0 and "Not sure yet" are ONE answer. `parseBudget` decides that, so
+ * the pill lights up for a typed 0 exactly as it does for an empty field —
+ * the screen agrees with what gets stored instead of quietly disagreeing.
  */
 function BudgetPicker({
   value,
@@ -267,10 +275,12 @@ function BudgetPicker({
   onChange: (value: string) => void;
   onCommit: () => void;
 }) {
+  const noBudget = parseBudget(value) === null;
+
   return (
     <fieldset className="mb-2">
       <legend className={`${styles.eyebrow} mb-2`}>What&apos;s your budget?</legend>
-      <p className={`mb-3 text-sm ${styles.muted}`}>
+      <p className={`mb-3 text-base ${styles.muted}`}>
         Optional. Tell us what you have and we&apos;ll fit the most video to it — and say so
         plainly if it doesn&apos;t stretch to what you&apos;ve described.
       </p>
@@ -284,9 +294,9 @@ function BudgetPicker({
         />
         <button
           type="button"
-          aria-pressed={value === ""}
+          aria-pressed={noBudget}
           className={styles.opt}
-          data-on={value === ""}
+          data-on={noBudget}
           onClick={() => {
             onChange("");
             onCommit();
@@ -295,6 +305,12 @@ function BudgetPicker({
           Not sure yet
         </button>
       </div>
+      {/* The nudge. Says what the number is FOR, which is the honest reason to
+          answer — not a guilt trip about leaving it blank. */}
+      <p className={`${styles.teach} mt-3`}>
+        A rough range is all we need — it helps us match you to the right crew. A number here is
+        never shown to anyone bidding.
+      </p>
     </fieldset>
   );
 }
@@ -303,12 +319,12 @@ function Deliverables({ answers, onPick }: { answers: Answers; onPick: Pick }) {
   return (
     <fieldset className="mb-7">
       <legend className={`${styles.eyebrow} mb-2`}>What are you getting out of it?</legend>
-      <p className={`mb-3 text-sm ${styles.muted}`}>
+      <p className={`mb-3 text-base ${styles.muted}`}>
         One shoot can make many videos. Editing is billed by total finished length, plus a little
         per extra cut.
       </p>
       <div className="mb-4">
-        <span className="mb-1 block text-sm font-semibold">How many videos?</span>
+        <span className="mb-1 block text-base font-semibold">How many videos?</span>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="How many videos">
           {COUNT_OPTS.map(([v, label]) => (
             <button
@@ -326,7 +342,7 @@ function Deliverables({ answers, onPick }: { answers: Answers; onPick: Pick }) {
         </div>
       </div>
       <div>
-        <span className="mb-1 block text-sm font-semibold">How long is each?</span>
+        <span className="mb-1 block text-base font-semibold">How long is each?</span>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="How long is each">
           {LEN_OPTS.map(([v, label]) => (
             <button
@@ -380,8 +396,8 @@ function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) 
 
           return (
             <div key={item.key}>
-              <span className="block text-sm font-semibold">{item.label}</span>
-              <p className={`mt-0.5 mb-2 text-xs ${styles.muted}`}>{item.help}</p>
+              <span className="block text-base font-semibold">{item.label}</span>
+              <p className={`mt-1 mb-2 text-sm ${styles.muted}`}>{item.help}</p>
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={item.label}>
                 {TRI_OPTS.map(([v, label]) => (
                   <button
@@ -418,7 +434,7 @@ function RunningTotal({ total }: { total: number }) {
   return (
     <div className={`${styles.card} flex items-baseline justify-between gap-3 px-4 py-3`}>
       <span className={styles.eyebrow}>Estimate so far</span>
-      <span className={`${styles.mono} text-lg font-semibold`} aria-live="polite">
+      <span className={`${styles.mono} text-xl font-semibold`} aria-live="polite">
         ~{fmt(total)}
       </span>
     </div>
@@ -440,8 +456,11 @@ function Estimate({
 }) {
   const [copied, setCopied] = useState(false);
 
-  const b = budget === "" ? null : Number(budget);
-  const has = b !== null && !Number.isNaN(b);
+  // parseBudget is the single definition of "they gave us a number": blank, 0
+  // and "Not sure yet" are one answer, so a typed 0 shows no budget line and
+  // no "that's short" warning rather than being treated as a real $0.
+  const b = parseBudget(budget);
+  const has = b !== null;
   const underFloor = has && scopes.lean.total > b;
 
   const scope = scopes[active];
@@ -491,7 +510,7 @@ function Estimate({
       </div>
 
       {has && !underFloor && (
-        <p className="mb-4 text-base">
+        <p className="mb-4 text-lg">
           <span className={`${styles.underline} ${styles.serif}`} style={{ fontWeight: 600 }}>
             {fmt(b)} gets you the {active} version.
           </span>
@@ -500,16 +519,16 @@ function Estimate({
 
       {underFloor && (
         <div className={`${styles.warn} mb-4`}>
-          <p className={`mb-1 text-sm font-semibold ${styles.warnTitle}`}>
+          <p className={`mb-1 text-base font-semibold ${styles.warnTitle}`}>
             That budget is short for what you&apos;re describing.
           </p>
-          <p className="mb-2 text-sm">
+          <p className="mb-2 text-base">
             The leanest honest version is{" "}
             <span className={`${styles.mono} font-semibold`}>{fmt(scopes.lean.total)}</span> — and
             nothing in it is padding.
           </p>
           {quickEligible && (
-            <p className="text-sm">
+            <p className="text-base">
               If you just need footage: a quick local hour, handed off raw, no editing —
               <span className={`${styles.mono} font-semibold`}> {fmt(BASELINE.quickHour.v)}</span>.
             </p>
@@ -520,9 +539,9 @@ function Estimate({
       <div className="mb-3">
         {scope.lines.map((l) => (
           <div key={l.key} className={styles.line}>
-            <span className="text-sm">{l.simple}</span>
+            <span className="text-base">{l.simple}</span>
             <span className={styles.dots} />
-            <span className={`${styles.mono} text-sm font-semibold`}>{fmt(l.amt)}</span>
+            <span className={`${styles.mono} text-base font-semibold`}>{fmt(l.amt)}</span>
           </div>
         ))}
       </div>
@@ -530,13 +549,13 @@ function Estimate({
       <div className={`${styles.totalRow} flex items-baseline gap-3 pt-2`}>
         <span className={styles.eyebrow}>Estimate</span>
         <span className={styles.dots} />
-        <span className={`${styles.mono} ${styles.serif} text-2xl font-semibold`}>
+        <span className={`${styles.mono} ${styles.serif} text-3xl font-semibold`}>
           {fmt(scope.total)}
         </span>
       </div>
 
       {next && (
-        <p className={`mt-3 text-sm ${styles.muted}`}>
+        <p className={`mt-3 text-base ${styles.muted}`}>
           +{fmt(scopes[next].total - scope.total)} → <b className="text-content">{next}</b>
           {next === "premium"
             ? ": fully produced — full polish, graphics, a second angle."
@@ -545,7 +564,7 @@ function Estimate({
       )}
 
       {scope.dropped.length > 0 && (
-        <p className={`mt-2 text-sm ${styles.muted}`}>
+        <p className={`mt-2 text-base ${styles.muted}`}>
           Trimmed to fit lean:{" "}
           {scope.dropped.map(([label, amt]) => `${label} (−${fmt(amt)})`).join(", ")}.
         </p>
@@ -557,7 +576,7 @@ function Estimate({
           <p className={`${styles.eyebrow} mb-2`}>This quote assumes…</p>
           <ul className="flex flex-col gap-1">
             {scope.assumptions.map((s) => (
-              <li key={s} className="text-sm">
+              <li key={s} className="text-base">
                 {s}
               </li>
             ))}
@@ -583,7 +602,7 @@ function Estimate({
         {scope.audioRequired ? " (we've included one as a starting point)" : ""}.
       </p>
 
-      <p className={`mt-4 text-sm ${styles.muted}`}>
+      <p className={`mt-4 text-base ${styles.muted}`}>
         Includes rough, fine, and final cut. Changes after that run {fmt(BASELINE.changesHour.v)}
         /hr — so you always know the price of a finished video before anyone opens an editor.
       </p>
@@ -593,7 +612,7 @@ function Estimate({
           {copied ? "Copied ✓" : "Copy this scope"}
         </button>
       </div>
-      <p className={`mt-3 text-sm ${styles.muted}`}>
+      <p className={`mt-3 text-base ${styles.muted}`}>
         An honest ballpark from typical regional rates. A specific pro may quote their own number —
         this gets you in the room already knowing the shape of the job.
       </p>
@@ -613,7 +632,14 @@ function Estimate({
  */
 export type ScopeProgress = {
   answers: Answers;
+  /** Raw, as typed — for display only. Use `budgetValue` for meaning. */
   budget: string;
+  /**
+   * The budget as a number, or null when they didn't give one. Blank, 0 and
+   * "Not sure yet" all land here as null, so a caller persisting this can
+   * never record a $0 budget for someone who simply hasn't got a figure yet.
+   */
+  budgetValue: number | null;
   variant: Variant;
   scope: Scope;
   /** Zero-based index of the furthest step reached, not the current one. */
@@ -659,9 +685,11 @@ export function ScopeTool({
   );
 
   // Most video for the money: the dearest variant the budget still covers.
-  const b = budget === "" ? null : Number(budget);
+  // Null for blank, 0 and "Not sure yet" alike, so none of them silently fit
+  // the tool to a budget nobody gave.
+  const b = parseBudget(budget);
   let fitted: Variant | null = null;
-  if (b !== null && !Number.isNaN(b)) {
+  if (b !== null) {
     for (const k of [...VARIANTS].reverse()) {
       if (scopes[k].total <= b) {
         fitted = k;
@@ -694,6 +722,13 @@ export function ScopeTool({
       ),
     },
     {
+      // Second, on purpose — see BudgetPicker. Late enough that they have said
+      // what they're making and who's in it, early enough that the running
+      // estimate beside the field is still a stub rather than an anchor.
+      title: "Your budget",
+      body: <BudgetPicker value={budget} onChange={setBudget} onCommit={save} />,
+    },
+    {
       title: "Where it lives",
       body: (
         <>
@@ -722,10 +757,6 @@ export function ScopeTool({
       title: "The judgment calls",
       body: <JudgmentCalls answers={answers} onPick={onPick} />,
     },
-    {
-      title: "Your budget",
-      body: <BudgetPicker value={budget} onChange={setBudget} onCommit={save} />,
-    },
   ];
 
   const isLast = step === steps.length - 1;
@@ -736,6 +767,7 @@ export function ScopeTool({
   const progress: ScopeProgress = {
     answers,
     budget,
+    budgetValue: b,
     variant: active,
     scope: scopes[active],
     furthestStep,
@@ -821,7 +853,7 @@ export function ScopeTool({
             <h2
               ref={headingRef}
               tabIndex={-1}
-              className={`${styles.serif} mt-3 text-xl font-semibold outline-none`}
+              className={`${styles.serif} mt-3 text-2xl font-semibold outline-none`}
             >
               {current.title}
             </h2>

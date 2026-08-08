@@ -137,7 +137,7 @@ begin
   perform public.record_scope_session(
     p_session_id        => '5e551011-0000-4000-8000-00000000000a',
     p_making_type       => 'Brand video',
-    p_last_step_reached => '02/06 Where it lives'
+    p_last_step_reached => '03/06 Where it lives'
   );
   -- The whole intake, as the tool sends it: every question, not just the four
   -- judgment checkboxes.
@@ -150,7 +150,7 @@ begin
                           "distance":"near","shootLocation":"Richmond, VA",
                           "secondCam":"no","audio":"unsure","drone":"yes",
                           "graphics":"no"}'::jsonb,
-    p_last_step_reached => '03/06 The shoot'
+    p_last_step_reached => '04/06 The shoot'
   );
   -- A later partial save must not drop the eleven keys it didn't mention.
   perform public.record_scope_session(
@@ -162,7 +162,7 @@ begin
     p_session_id        => '5e551011-0000-4000-8000-00000000000a',
     p_budget_input      => '3500',
     p_computed_estimate => 4870,
-    p_last_step_reached => '06/06 Your budget'
+    p_last_step_reached => '06/06 The judgment calls'
   );
   raise notice 'PASS 3  four saves, one session token';
 
@@ -229,7 +229,7 @@ begin
   if r.referral_source ->> 'utm_source' <> 'seo' then
     raise exception 'FAIL 3f: referral_source did not land';
   end if;
-  if r.last_step_reached <> '06/06 Your budget' then
+  if r.last_step_reached <> '06/06 The judgment calls' then
     raise exception 'FAIL 3g: last_step_reached is %', r.last_step_reached;
   end if;
   if r.user_id is not null then
@@ -264,7 +264,7 @@ begin
   -- Pressing Back must not un-report how far they got.
   perform public.record_scope_session(
     p_session_id        => '5e551011-0000-4000-8000-00000000000a',
-    p_last_step_reached => '02/06 Where it lives'
+    p_last_step_reached => '03/06 Where it lives'
   );
 
   -- They ask for the call…
@@ -289,7 +289,7 @@ declare r public.scope_sessions%rowtype;
 begin
   select * into r from public.scope_sessions where session_id = '5e551011-0000-4000-8000-00000000000a';
 
-  if r.last_step_reached <> '06/06 Your budget' then
+  if r.last_step_reached <> '06/06 The judgment calls' then
     raise exception 'FAIL 5: pressing Back lowered last_step_reached to %', r.last_step_reached;
   end if;
   raise notice 'PASS 5  last_step_reached is a high-water mark, not the current step';

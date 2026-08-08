@@ -66,7 +66,10 @@ function toInput(progress: ScopeProgress): ScopeProgressInput {
     // a question is added.
     answers: { ...answers },
     shootLocation: answers.shootLocation,
-    budgetInput: progress.budget,
+    // The NORMALISED budget, never the raw field. Blank, 0 and "Not sure yet"
+    // are one answer and all three send null, so nobody who hasn't got a
+    // figure yet turns up in the leads table looking like a $0 budget.
+    budgetInput: progress.budgetValue === null ? null : String(progress.budgetValue),
     computedEstimate: progress.scope.total,
     lastStepReached: progress.furthestStepLabel,
   };
@@ -141,10 +144,10 @@ function ProducerCallForm() {
   if (state.status === "sent") {
     return (
       <div className={`${styles.card} p-5 md:p-6`}>
-        <p className={`${styles.serif} text-xl font-semibold`}>
+        <p className={`${styles.serif} text-2xl font-semibold`}>
           Thanks, {state.name} — we&apos;ll call you.
         </p>
-        <p className="mt-2 text-sm text-secondary">
+        <p className="mt-2 text-base text-secondary">
           A producer will be in touch within one business day. They&apos;ll have this estimate in
           front of them, so you won&apos;t have to explain the job twice. Nothing gets booked and
           nothing gets charged on that call.
@@ -155,31 +158,31 @@ function ProducerCallForm() {
 
   return (
     <form action={formAction} className={`${styles.card} p-5 md:p-6`}>
-      <p className={`${styles.serif} text-xl font-semibold`}>Have a producer call me — free</p>
-      <p className="mt-1 mb-4 text-sm text-secondary">
+      <p className={`${styles.serif} text-2xl font-semibold`}>Have a producer call me — free</p>
+      <p className="mt-1 mb-4 text-base text-secondary">
         No obligation, no sales script. They&apos;ll walk this estimate through with you and line
         up crew who actually shoot this kind of thing.
       </p>
 
       {state.status === "error" && (
-        <p className="mb-4 rounded-md bg-danger px-3 py-2 text-sm text-danger-ink">
+        <p className="mb-4 rounded-md bg-danger px-3 py-2 text-base text-danger-ink">
           {state.message}
         </p>
       )}
 
       <div className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="flex flex-col gap-1.5 text-base font-medium">
           Your name
-          <input name="contact_name" required maxLength={120} className={styles.text} />
+          <input name="contact_name" required maxLength={120} className={`${styles.text} ${styles.textFull}`} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="flex flex-col gap-1.5 text-base font-medium">
           Email
-          <input type="email" name="contact_email" maxLength={200} className={styles.text} />
+          <input type="email" name="contact_email" maxLength={200} className={`${styles.text} ${styles.textFull}`} />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
+        <label className="flex flex-col gap-1.5 text-base font-medium">
           Phone
-          <input type="tel" name="contact_phone" maxLength={40} className={styles.text} />
-          <span className="text-xs text-muted">
+          <input type="tel" name="contact_phone" maxLength={40} className={`${styles.text} ${styles.textFull}`} />
+          <span className="text-sm text-muted">
             Either one is enough — whichever you&apos;d rather be reached on.
           </span>
         </label>
@@ -212,7 +215,7 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
         <p className={`${styles.serif} ${styles.mono} text-4xl font-semibold sm:text-5xl`}>
           {fmt(scope.total)}
         </p>
-        <p className="mt-2 text-base text-secondary">
+        <p className="mt-2 text-lg text-secondary">
           That&apos;s a real number, from the rates real crews charge — not a range designed to
           get you on a call.
         </p>
@@ -222,13 +225,13 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
           <ul className="flex flex-col gap-1">
             {scope.lines.map((line) => (
               <li key={line.key} className={styles.line}>
-                <span className="text-sm">{line.simple}</span>
+                <span className="text-base">{line.simple}</span>
                 <span className={styles.dots} />
-                <span className={`${styles.mono} text-sm font-semibold`}>{fmt(line.amt)}</span>
+                <span className={`${styles.mono} text-base font-semibold`}>{fmt(line.amt)}</span>
               </li>
             ))}
           </ul>
-          <p className={`mt-3 text-sm ${styles.muted}`}>
+          <p className={`mt-3 text-base ${styles.muted}`}>
             {scope.editDays} edit day{scope.editDays > 1 ? "s" : ""} covering{" "}
             {scope.count > 1 ? `${scope.count} cuts` : "one cut"} — about {scope.totalMin} finished
             minute{scope.totalMin === 1 ? "" : "s"} — through rough, fine and final.
@@ -240,16 +243,16 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
           it can't answer, which is the one that actually stops people. */}
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <div>
-          <h2 className={`${styles.serif} text-2xl font-semibold`}>
+          <h2 className={`${styles.serif} text-3xl font-semibold`}>
             The number was never the scary part.
           </h2>
-          <p className="mt-3 text-base text-secondary">
+          <p className="mt-3 text-lg text-secondary">
             Handing it to a stranger is. Every reel on every website looks good — that&apos;s what
             a reel is for. What you can&apos;t tell from one is whether the person behind it will
             turn up on the day, light it properly, get usable audio, and come back with the video
             they promised. Get that wrong once and you&apos;ve spent {fmt(scope.total)} finding out.
           </p>
-          <p className="mt-3 text-base text-secondary">
+          <p className="mt-3 text-lg text-secondary">
             That&apos;s the part we do. Tell us about the shoot and a producer — an actual
             producer, not a sales rep — will call you, walk this estimate through line by line,
             and put crew in front of you who have shot this exact thing before
@@ -260,8 +263,8 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
           {/* Secondary path, deliberately quieter and further down. Someone who
               already knows what they want shouldn't have to wait for a call. */}
           <div className="mt-6 border-t border-line pt-5">
-            <p className="text-sm font-medium">Rather just get on with it?</p>
-            <p className="mt-1 mb-3 text-sm text-muted">
+            <p className="text-base font-medium">Rather just get on with it?</p>
+            <p className="mt-1 mb-3 text-base text-muted">
               Create an account and post this as a job. Crew apply to you, and it&apos;s free to
               post.
             </p>
@@ -272,7 +275,7 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
             </form>
           </div>
 
-          <p className="mt-5 text-xs text-muted">
+          <p className="mt-5 text-sm text-muted">
             We only know what you typed on this page. We didn&apos;t look up where you are, and we
             won&apos;t email you unless you ask us to above.{" "}
             <Link href="/how-we-operate" className="underline">
