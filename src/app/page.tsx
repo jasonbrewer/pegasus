@@ -60,7 +60,7 @@ export default function Home() {
             Where businesses find independent video production professionals.
           </h1>
           <Ring className={styles.irisHero} />
-          <p className={styles.payoff}>It's free for everyone - Our team assists employers in hiring the perfect partner - Crew can apply with resumes</p>
+          <p className={styles.payoff}>It's free for everyone - Our (human) team personally assists employers in hiring the perfect video partner</p>
 
           <div className={styles.ctaRow}>
             <Link href="/sign-up?role=employer" className={`${styles.btn} ${styles.btnGhost}`}>
