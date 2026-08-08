@@ -57,10 +57,10 @@ export default function Home() {
         <div className={styles.wrap}>
           <span className={styles.eyebrow}>A hiring circle for video production</span>
           <h1 className={styles.title}>
-            The most reliable production jobs in media and entertainment.
+            Where businesses find independent production partners.
           </h1>
           <Ring className={styles.irisHero} />
-          <p className={styles.payoff}>Join the circle - It's always free -  Apply with resumes</p>
+          <p className={styles.payoff}>Join the circle - It's always free - We help you hire - Apply with resumes</p>
 
           <div className={styles.ctaRow}>
             <Link href="/sign-up?role=freelancer" className={`${styles.btn} ${styles.btnPrimary}`}>
