@@ -57,7 +57,7 @@ export default function Home() {
         <div className={styles.wrap}>
           <span className={styles.eyebrow}>A hiring circle for video production</span>
           <h1 className={styles.title}>
-            Where businesses find independent production partners.
+            Where businesses find independent video production professionals.
           </h1>
           <Ring className={styles.irisHero} />
           <p className={styles.payoff}>Join the circle - It's always free - We help you hire - Apply with resumes</p>
@@ -65,7 +65,7 @@ export default function Home() {
           <div className={styles.ctaRow}>
             <Link href="/sign-up?role=freelancer" className={`${styles.btn} ${styles.btnPrimary}`}>
               <span className={styles.dot} />
-              I'm a video professional and would like to apply
+              Video Pros - click here to get hired
             </Link>
             <Link href="/sign-up?role=employer" className={`${styles.btn} ${styles.btnGhost}`}>
               <span className={styles.dot} />
