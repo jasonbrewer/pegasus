@@ -65,11 +65,11 @@ export default function Home() {
           <div className={styles.ctaRow}>
             <Link href="/sign-up?role=freelancer" className={`${styles.btn} ${styles.btnPrimary}`}>
               <span className={styles.dot} />
-              Get hired
+              I'm a video professional and would like to apply
             </Link>
             <Link href="/sign-up?role=employer" className={`${styles.btn} ${styles.btnGhost}`}>
               <span className={styles.dot} />
-              Hire crew
+              I need to hire a video production Professional
             </Link>
           </div>
 
