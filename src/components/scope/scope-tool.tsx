@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  autoRules,
   buildScope,
-  colorByDefault,
+  checklistDefaults,
+  resolveChecklist,
   fmt,
   CHECKLIST,
   COUNT_OPTS,
@@ -383,30 +383,34 @@ function Deliverables({ answers, onPick }: { answers: Answers; onPick: Pick }) {
  * the estimate sitting next to it.
  */
 function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) {
-  const auto = autoRules(answers);
+  const defaults = checklistDefaults(answers);
+  // The operator brings their own camera, so gear-only is meaningless on top
+  // of one. This is the ONLY thing on this list that goes quiet, and it is
+  // driven by the answer above it — never by what they're making. Set the
+  // operator question to No and this comes straight back.
+  const operatorOn = resolveChecklist(
+    answers.secondCamOperator,
+    defaults.secondCamOperator.on
+  );
 
   return (
     <fieldset className="mb-7">
       <legend className={`${styles.eyebrow} mb-2`}>Things you might not know you need</legend>
       <p className={`${styles.teach} mb-5`}>
-        Not sure on these? Don&apos;t worry — pick &ldquo;I don&apos;t know&rdquo; and we&apos;ll
-        leave it out for now. This is just a ballpark so you can plan a number.
+        Every one of these already has an answer based on what you&apos;re making — leave them on
+        &ldquo;I don&apos;t know&rdquo; and we&apos;ll use it. Change any of them and we&apos;ll
+        use yours instead.
       </p>
 
       <div className="flex flex-col gap-5">
         {CHECKLIST.map((item) => {
-          // Only some of these can be decided by other answers. Aerial never
-          // is, and colour deliberately is not either — its default comes from
-          // what they're making and the buyer can always overrule it, so it
-          // must not be locked.
-          const rule = item.key in auto ? auto[item.key as keyof typeof auto] : undefined;
-          const forced = rule?.forced ?? false;
-          const value = forced ? "yes" : answers[item.key];
-          // Colour is the one item whose three states need their own wording.
+          const fallback = defaults[item.key];
+          const value = answers[item.key];
+          const muted = item.key === "secondCamGear" && operatorOn;
           const opts = item.opts ?? TRI_OPTS;
 
           return (
-            <div key={item.key}>
+            <div key={item.key} data-muted={muted || undefined} className={muted ? styles.quiet : undefined}>
               <span className="block text-sm font-semibold">{item.label}</span>
               <p className={`mt-1 mb-2 text-xs ${styles.muted}`}>{item.help}</p>
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={item.label}>
@@ -416,7 +420,7 @@ function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) 
                     type="button"
                     role="radio"
                     aria-checked={value === v}
-                    disabled={forced}
+                    disabled={muted}
                     className={styles.opt}
                     data-on={value === v}
                     onClick={() => onPick(item.key, v)}
@@ -425,20 +429,23 @@ function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) 
                   </button>
                 ))}
               </div>
-              {forced && rule && (
+
+              {/* Why it is quiet, so it never reads as a broken control. */}
+              {muted && (
                 <p className={`${styles.teach} mt-2`}>
-                  Already in your estimate — {rule.because}.
+                  Not needed — the second operator above brings their own camera, so this adds
+                  nothing. Set that to &ldquo;No&rdquo; if you want the cheaper gear-only option
+                  instead.
                 </p>
               )}
-              {/* "I don't know" leaves colour to the making-type default, so
-                  say out loud which way that falls. Without this the neutral
-                  option is the only control on the page whose effect you
-                  cannot see. */}
-              {item.key === "color" && value === "unsure" && (
+
+              {/* Left on the default: say which way it fell and why. Every item
+                  gets this now, not just colour — a default you cannot see is
+                  indistinguishable from the tool ignoring you. */}
+              {!muted && value === "unsure" && (
                 <p className={`${styles.teach} mt-2`}>
-                  {colorByDefault(answers.making)
-                    ? `Left to us: a ${answers.making.toLowerCase()} normally gets a grade, so it's in your estimate.`
-                    : `Left to us: a ${answers.making.toLowerCase()} normally doesn't get one, so it's out of your estimate.`}
+                  {fallback.on ? "Already in your estimate" : "Left out for now"} — {fallback.because}
+                  . Change it above if that&apos;s not right.
                 </p>
               )}
             </div>
@@ -592,18 +599,25 @@ function Estimate({
         </p>
       )}
 
-      {/* The receipt for this number: what it left out, and why. */}
+      {/* The receipt for this number: what it left out, and why.
+          Folded away by default — it is seven or eight sentences of small
+          print sitting between the buyer and the thing they came for, and the
+          people who want it will open it. "Copy this scope" below is outside
+          this element on purpose and still copies every line of it, open or
+          shut. */}
       {scope.assumptions.length > 0 && (
-        <div className={`${styles.assumes} mt-4`}>
-          <p className={`${styles.eyebrow} mb-2`}>This quote assumes…</p>
-          <ul className="flex flex-col gap-1">
+        <details className={`${styles.assumes} ${styles.disclosure} mt-4`}>
+          <summary className={styles.eyebrow}>
+            This quote assumes… ({scope.assumptions.length})
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1">
             {scope.assumptions.map((s) => (
               <li key={s} className="text-sm">
                 {s}
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
 
       {scope.notes.length > 0 && (
@@ -672,9 +686,17 @@ export type ScopeProgress = {
 };
 
 export function ScopeTool({
+  intro,
   onProgress,
   result,
 }: {
+  /**
+   * The page's headline and standfirst. Rendered on the FIRST step only — it
+   * introduces the tool, and once someone is three questions in it is just a
+   * banner pushing the questions down the page. Server-rendered by the caller,
+   * so the H1 is still in the initial HTML for search.
+   */
+  intro?: ReactNode;
   /**
    * Called once on mount, then on each answer, each step change and each blur
    * of a typed field. Never on every keystroke. The caller decides what to do
@@ -696,6 +718,11 @@ export function ScopeTool({
   // Lifted so the desktop card and the mobile sheet can never disagree.
   const [pick, setPick] = useState<Variant | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // Where "See my estimate" sends them. Two targets because the estimate lives
+  // in a different place on each breakpoint — beside the questions on desktop,
+  // underneath them on a phone — and scrolling to the hidden one goes nowhere.
+  const estimateDesktopRef = useRef<HTMLDivElement>(null);
+  const estimateMobileRef = useRef<HTMLDivElement>(null);
 
   const scopes = useMemo(
     () => ({
@@ -827,6 +854,21 @@ export function ScopeTool({
     requestAnimationFrame(() => headingRef.current?.focus());
   };
 
+  /*
+   * The last step used to end on a lone "Back" button, which reads as a dead
+   * end — the tool stops without ever saying it has finished. Nothing is
+   * computed here that isn't already on screen: the estimate has been live
+   * since step one. This is a finish line, and its whole job is to say so and
+   * to put the number in front of them on a phone, where it is below the fold.
+   */
+  const showEstimate = () => {
+    const target =
+      (estimateMobileRef.current?.offsetParent ? estimateMobileRef.current : null) ??
+      estimateDesktopRef.current ??
+      estimateMobileRef.current;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const estimate = (
     <Estimate
       scopes={scopes}
@@ -839,6 +881,9 @@ export function ScopeTool({
 
   return (
     <div className={styles.root}>
+      {/* Step one only — see the `intro` prop. */}
+      {step === 0 && intro}
+
       {/* Phone: the number rides along at the top of the screen, then opens
           into the full sheet on the last step. It is never hidden until the
           end — watching it move is how the tool teaches. */}
@@ -889,18 +934,28 @@ export function ScopeTool({
                 Back
               </button>
             )}
-            {!isLast && (
+            {!isLast ? (
               <button type="button" className={styles.navNext} onClick={() => go(step + 1)}>
                 Next
+              </button>
+            ) : (
+              <button type="button" className={styles.navNext} onClick={showEstimate}>
+                See my estimate
               </button>
             )}
           </div>
 
           {/* Phone: the full sheet, once they've answered everything. */}
-          {isLast && <div className="mt-8 lg:hidden">{estimate}</div>}
+          {isLast && (
+            <div ref={estimateMobileRef} className="mt-8 scroll-mt-4 lg:hidden">
+              {estimate}
+            </div>
+          )}
         </div>
 
-        <div className="hidden lg:sticky lg:top-6 lg:block">{estimate}</div>
+        <div ref={estimateDesktopRef} className="hidden scroll-mt-6 lg:sticky lg:top-6 lg:block">
+          {estimate}
+        </div>
       </div>
 
       {/* The public page's CTA panel. Full width and below both columns, so it

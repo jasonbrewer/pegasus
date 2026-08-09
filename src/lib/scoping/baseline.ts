@@ -67,12 +67,19 @@ export const BASELINE = {
     trigger: "Under-budget fallback: local, ~1 hr, footage handed off, no editing.",
     help: "",
   },
-  secondCam: {
+  secondCamOperator: {
     v: 1400,
     group: "Filming",
-    label: "Second camera (per day)",
-    trigger: "Event coverage, or a produced piece that needs two angles.",
-    help: "Second operator + kit.",
+    label: "Second camera + operator (per day)",
+    trigger: "Anything that happens once — a conference, a gala, a sizzle cut from live coverage.",
+    help: "A second person shooting, with their own kit. They bring the camera, so the gear-only line below never applies on top of this one.",
+  },
+  secondCamGearOnly: {
+    v: 400,
+    group: "Filming",
+    label: "Second camera, gear only (per day)",
+    trigger: "A staged, repeatable piece that wants a cutaway — an interview, a panel, an explainer.",
+    help: "An extra body locked off on a tripod, run by the shooter already there. A second angle without a second wage.",
   },
   audioDay: {
     v: 1250,

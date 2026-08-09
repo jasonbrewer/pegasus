@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { Fragment, useActionState, useState, type ReactNode } from "react";
 import { ScopeTool, type ScopeProgress } from "@/components/scope/scope-tool";
 import styles from "@/components/scope/scope.module.css";
 import { fmt } from "@/lib/scoping/engine";
@@ -209,6 +209,24 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
   return (
     <section aria-label="Your estimate and what to do next">
       <div className={`${styles.card} p-5 md:p-8`}>
+        {/* The journey line. Decorative, and the one flourish on a page that is
+            otherwise all arithmetic: it frames the number as the end of
+            something rather than the start of an invoice. The arrows are
+            hidden from screen readers — read aloud, "Planned right-arrow Shot"
+            is noise; the four words on their own carry it. */}
+        <p className={styles.journey} aria-label="Planned, shot, edited, delivered">
+          {["Planned", "Shot", "Edited", "Delivered"].map((stage, i) => (
+            <Fragment key={stage}>
+              {i > 0 && (
+                <span className={styles.journeyArrow} aria-hidden="true">
+                  →
+                </span>
+              )}
+              <span className={styles.journeyStep}>{stage}</span>
+            </Fragment>
+          ))}
+        </p>
+
         <span className={`${styles.eyebrow} mb-2 block`}>
           Your {answers.making.toLowerCase()}, {progress.variant}
         </span>
@@ -293,12 +311,16 @@ function ResultPanel({ progress }: { progress: ScopeProgress }) {
 
 /* ====================== TOOL ====================== */
 
-export function PublicScope() {
+export function PublicScope({ intro }: { intro?: ReactNode }) {
   // Lazy initialiser: one queue per mount, and a stable identity for the life
   // of the component.
   const [onProgress] = useState(createCapture);
 
   return (
-    <ScopeTool onProgress={onProgress} result={(progress) => <ResultPanel progress={progress} />} />
+    <ScopeTool
+      intro={intro}
+      onProgress={onProgress}
+      result={(progress) => <ResultPanel progress={progress} />}
+    />
   );
 }
