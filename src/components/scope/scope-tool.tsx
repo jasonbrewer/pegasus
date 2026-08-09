@@ -396,7 +396,7 @@ function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) 
   return (
     <fieldset className="mb-7">
       <legend className={`${styles.eyebrow} mb-2`}>Things you might not know you need</legend>
-      <p className={`${styles.teach} mb-5`}>
+      <p className={`mb-5 text-sm ${styles.muted}`}>
         Every one of these already has an answer based on what you&apos;re making — leave them on
         &ldquo;I don&apos;t know&rdquo; and we&apos;ll use it. Change any of them and we&apos;ll
         use yours instead.
@@ -409,11 +409,32 @@ function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) 
           const muted = item.key === "secondCamGear" && operatorOn;
           const opts = item.opts ?? TRI_OPTS;
 
+          /*
+           * What the DEFAULT did, and only when a default is actually in play.
+           *
+           * An item the visitor has answered has nothing to report — they know
+           * what they picked, and a line telling them so is noise on a step
+           * that already carries six questions.
+           */
+          const note = muted
+            ? "Not needed — the second operator above brings their own camera. Set that to “No” for the cheaper gear-only option."
+            : value === "unsure"
+              ? `${fallback.on ? "Already in your estimate" : "Left to us"} — ${fallback.because}.`
+              : null;
+
           return (
-            <div key={item.key} data-muted={muted || undefined} className={muted ? styles.quiet : undefined}>
+            <div key={item.key} className={muted ? styles.quiet : undefined}>
               <span className="block text-sm font-semibold">{item.label}</span>
-              <p className={`mt-1 mb-2 text-xs ${styles.muted}`}>{item.help}</p>
-              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={item.label}>
+              <p className={`mt-1 text-xs ${styles.muted}`}>{item.help}</p>
+              {/* Plain muted text, deliberately not a teaching box. Six of
+                  those stacked read as a wall of green rather than as six
+                  separate answers. */}
+              {note && <p className={`mt-1 text-xs ${styles.stateNote}`}>{note}</p>}
+              <div
+                className="mt-2 flex flex-wrap gap-2"
+                role="radiogroup"
+                aria-label={item.label}
+              >
                 {opts.map(([v, label]) => (
                   <button
                     key={v}
@@ -429,25 +450,6 @@ function JudgmentCalls({ answers, onPick }: { answers: Answers; onPick: Pick }) 
                   </button>
                 ))}
               </div>
-
-              {/* Why it is quiet, so it never reads as a broken control. */}
-              {muted && (
-                <p className={`${styles.teach} mt-2`}>
-                  Not needed — the second operator above brings their own camera, so this adds
-                  nothing. Set that to &ldquo;No&rdquo; if you want the cheaper gear-only option
-                  instead.
-                </p>
-              )}
-
-              {/* Left on the default: say which way it fell and why. Every item
-                  gets this now, not just colour — a default you cannot see is
-                  indistinguishable from the tool ignoring you. */}
-              {!muted && value === "unsure" && (
-                <p className={`${styles.teach} mt-2`}>
-                  {fallback.on ? "Already in your estimate" : "Left out for now"} — {fallback.because}
-                  . Change it above if that&apos;s not right.
-                </p>
-              )}
             </div>
           );
         })}
