@@ -282,6 +282,17 @@
   color: var(--flag);
 }
 
+/*
+ * What the tool assumed on a judgment call, shown under the question's own
+ * subtext. Muted like the subtext but tinted toward the teaching colour, so
+ * the two lines read as different kinds of sentence — "here's what this is"
+ * and "here's what we did" — without another boxed callout on the page.
+ */
+.stateNote {
+  color: var(--teach);
+  line-height: 1.5;
+}
+
 /* A judgment call that another judgment call has made irrelevant — currently
    only gear-only under a second operator. Quieter, not hidden: it stays on the
    page so the buyer can see the option exists and what would bring it back. */
