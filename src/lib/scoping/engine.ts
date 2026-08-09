@@ -36,9 +36,15 @@ export type Hire = "local" | "import";
 export type Distance = "near" | "drive1" | "drive2" | "flight";
 export type PolishKey = "quick" | "standard" | "full";
 export type CountKey = "1" | "2" | "4" | "8";
-export type LengthKey = "0.5" | "1" | "3" | "6";
+export type LengthKey = "0.5" | "1" | "3" | "6" | "15" | "30";
 
-export type ChecklistKey = "secondCam" | "audio" | "drone" | "graphics" | "color";
+export type ChecklistKey =
+  | "secondCamOperator"
+  | "secondCamGear"
+  | "audio"
+  | "drone"
+  | "graphics"
+  | "color";
 
 export type Answers = {
   making: string;
@@ -184,8 +190,23 @@ export const QUESTIONS: Question[] = [
 
 /**
  * The judgment-call checklist — the things a buyer might not know they need.
- * Aerial/drone was a plain yes/no question in v1 and lives here now, so all
- * four of these get the same three-state treatment.
+ *
+ * EVERY item here works the same way, and the rule has no exceptions:
+ *
+ *   the making-type (and the other answers) set the DEFAULT;
+ *   "Yes" forces it in, "No" forces it out, "I don't know" takes the default.
+ *
+ * Nothing on this list is ever locked, greyed out or answered-for by what
+ * they're making. It used to be: an event forced a second camera and a
+ * conversation forced a sound person, both rendered as disabled buttons, so
+ * the one question a buyer most wants to push back on was the one they
+ * couldn't. A default the visitor cannot overrule is not a default, it is the
+ * tool telling them what they want.
+ *
+ * The single greying rule left is between two items on this list rather than
+ * from the making-type: a second OPERATOR brings their own camera, so
+ * gear-only goes quiet and contributes nothing while an operator is in. Set
+ * the operator question to No and gear-only comes straight back.
  */
 export const CHECKLIST: {
   key: ChecklistKey;
@@ -195,9 +216,14 @@ export const CHECKLIST: {
   opts?: [TriState, string][];
 }[] = [
   {
-    key: "secondCam",
-    label: "A second camera?",
-    help: "A second angle. Common for events or a more produced look.",
+    key: "secondCamOperator",
+    label: "Second camera + operator?",
+    help: "A second camera with its own person behind it — someone framing and following the action live. What event coverage and anything cut fast needs.",
+  },
+  {
+    key: "secondCamGear",
+    label: "Second camera — gear only?",
+    help: "A second body locked off on a tripod, run by the shooter you already have. A second angle for the edit without a second wage.",
   },
   {
     key: "audio",
@@ -247,7 +273,14 @@ export const LEN_OPTS: [LengthKey, string][] = [
   ["0.5", "About 30 seconds"],
   ["1", "Around a minute"],
   ["3", "A few minutes"],
-  ["6", "5 minutes or more"],
+  // Was "5 minutes or more" — it had to stop saying "or more" the moment
+  // there were longer options underneath it.
+  ["6", "Around 5 minutes"],
+  ["15", "About 15 minutes"],
+  // The open end of the scale. Priced as exactly 30 everywhere — the key IS
+  // the number the maths uses, so there is no separate "treat 30+ as 30" rule
+  // to keep in sync. A genuinely longer piece needs a person, not a button.
+  ["30", "30 minutes or more"],
 ];
 
 /** Representative counts for the per-extra-cut overhead math. */
@@ -294,8 +327,46 @@ export const COLOR_MAKING = new Set([
   "Founder / CEO interview",
 ]);
 
-/** Whether this making-type gets a grade when the buyer hasn't said either way. */
-export const colorByDefault = (making: string): boolean => COLOR_MAKING.has(making);
+/**
+ * What second camera, if any, a making-type gets by default.
+ *
+ * Three states, and the base shooter is in every quote regardless — these say
+ * only what goes ON TOP of that one camera.
+ *
+ *   OPERATOR ($1,400)  a second person shooting. For anything that happens
+ *                      once and cannot be repeated: a conference, a gala, a
+ *                      sizzle cut from live coverage. Miss the moment with one
+ *                      camera and there is no second take.
+ *   GEAR ONLY ($400)   a second body on a tripod, run by the shooter already
+ *                      there. For pieces that are staged and repeatable but
+ *                      want a cutaway — a founder interview, a panel, an
+ *                      explainer, safety training.
+ *   NEITHER            everything else. One camera, and the edit works.
+ *
+ * A making-type must not appear in both sets — the assertion below throws at
+ * import if one ever does, because the alternative is a quote that silently
+ * charges for an operator and a spare body on the same shoot.
+ */
+export const SECOND_CAM_OPERATOR_MAKING = new Set([
+  "Sizzle reel",
+  "Conference recap",
+  "Gala / fundraiser",
+]);
+
+export const SECOND_CAM_GEAR_MAKING = new Set([
+  "Founder / CEO interview",
+  "Panel / livestream",
+  "How-to / explainer",
+  "Safety training",
+]);
+
+for (const m of SECOND_CAM_OPERATOR_MAKING) {
+  if (SECOND_CAM_GEAR_MAKING.has(m)) {
+    throw new Error(
+      `scoping: "${m}" is in both second-camera default sets — it would bill an operator and a spare body for the same shoot`
+    );
+  }
+}
 
 export const DEFAULTS: Answers = {
   making: "Testimonial",
@@ -308,35 +379,51 @@ export const DEFAULTS: Answers = {
   count: "1",
   each: "3",
   shootLocation: "",
-  secondCam: "no",
-  audio: "no",
-  drone: "no",
-  graphics: "no",
-  // Neutral, not "no": colour falls back to the making-type default until the
-  // buyer actually says one way or the other.
+  /*
+   * EVERY judgment call starts neutral, and neutral means "use the default
+   * for what they're making".
+   *
+   * These used to start at "no", which quietly made the checklist lie: the
+   * engine ORed the buyer's "no" with its own rules, so a making-type that
+   * needed a sound person got one while the button still read No, and there
+   * was no way to say no and be listened to. Now the making-type sets the
+   * default, "unsure" accepts it, and yes/no override it. Nothing is locked.
+   */
+  secondCamOperator: "unsure",
+  secondCamGear: "unsure",
+  audio: "unsure",
+  drone: "unsure",
+  graphics: "unsure",
   color: "unsure",
 };
 
-/* ===================== AUTO-RULES ===================== */
+/* =================== CHECKLIST DEFAULTS =================== */
 
-/** What the buyer's other answers already decided for them, and why. */
-export type AutoRule = { forced: boolean; because: string };
+/**
+ * What a judgment call defaults to when the buyer leaves it on "I don't know",
+ * and the plain-English reason, so the tool can say which way it fell.
+ *
+ * `on` is a DEFAULT and never a verdict — buildScope applies yes/no over the
+ * top of it, and the UI keeps all three buttons live.
+ */
+export type ChecklistDefault = { on: boolean; because: string };
 
 export const archOf = (making: string): Archetype =>
   MAKING.find((m) => m.label === making)?.arch ?? "branded";
 
 /**
- * Three of the four checklist items can be forced ON by answers given
- * elsewhere — an event needs a second angle, a 2–3 person conversation needs a
- * sound person, an ad needs titles. The checklist shows those as answered
- * rather than letting a "No" here quietly contradict the estimate.
+ * The defaults for every checklist item, from the making-type and the answers
+ * already given.
  *
- * These are the variant-independent rules only. A premium second camera or a
- * lean trim is the tier doing its job, not the answers forcing a line.
+ * This replaced `autoRules`, which returned `{ forced: true }` for three of
+ * the items and drove a `disabled` attribute in the UI. The shape change is
+ * the point: there is no longer anything for a component to lock, because
+ * nothing here claims to be final.
  */
-export function autoRules(a: Answers): Record<"secondCam" | "audio" | "graphics", AutoRule> {
+export function checklistDefaults(a: Answers): Record<ChecklistKey, ChecklistDefault> {
   const arch = archOf(a.making);
   const isAd = arch === "ad" || a.destination === "tv";
+  const making = a.making.toLowerCase();
 
   const audioBecause =
     a.onCamera === "conversation"
@@ -346,21 +433,56 @@ export function autoRules(a: Answers): Record<"secondCam" | "audio" | "graphics"
         : a.destination === "tv"
           ? "it's airing as a TV or paid ad"
           : AUDIO_MAKING.has(a.making)
-            ? `a ${a.making.toLowerCase()} always gets one`
+            ? `a ${making} always gets one`
             : "";
 
+  const operator = SECOND_CAM_OPERATOR_MAKING.has(a.making);
+  const gear = SECOND_CAM_GEAR_MAKING.has(a.making);
+
   return {
-    secondCam: {
-      forced: arch === "event",
-      because: "event coverage can't stop for a second take",
+    secondCamOperator: {
+      on: operator,
+      because: operator
+        ? `a ${making} happens once — a second pair of hands is how you don't miss it`
+        : `a ${making} doesn't need a second person on camera`,
     },
-    audio: { forced: audioBecause !== "", because: audioBecause },
+    secondCamGear: {
+      on: gear,
+      because: gear
+        ? `a ${making} cuts better with a second angle, and the shooter can run it`
+        : `one camera covers a ${making}`,
+    },
+    audio: {
+      on: audioBecause !== "",
+      because: audioBecause || "one person to camera usually records fine into the camera",
+    },
+    drone: {
+      on: false,
+      because: "nothing you've told us needs an aerial",
+    },
     graphics: {
-      forced: isAd || a.polish === "full",
-      because: isAd ? "it's airing as a TV or paid ad" : "you asked for the fully-produced treatment",
+      on: isAd || a.polish === "full",
+      because: isAd
+        ? "it's airing as a TV or paid ad"
+        : a.polish === "full"
+          ? "you asked for the fully-produced treatment"
+          : "nothing here needs titles or animation",
+    },
+    color: {
+      on: COLOR_MAKING.has(a.making),
+      because: COLOR_MAKING.has(a.making)
+        ? `a ${making} normally gets a grade`
+        : `a ${making} normally doesn't get one`,
     },
   };
 }
+
+/**
+ * The buyer's answer over the top of the default. The whole override rule, in
+ * one line, used for every item so none of them can drift apart.
+ */
+export const resolveChecklist = (answer: TriState, fallback: boolean): boolean =>
+  answer === "yes" ? true : answer === "no" ? false : fallback;
 
 /* ========================= ENGINE ========================= */
 
@@ -397,10 +519,11 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   const arch = archOf(a.making);
   const days = { couple: 1, one: 1, two: 2, three: 3 }[a.filming];
 
-  const audioRequired =
-    ["conversation", "execs"].includes(a.onCamera) ||
-    a.destination === "tv" ||
-    AUDIO_MAKING.has(a.making);
+  /* Read off the same defaults table the checklist uses rather than recomputed
+     here — this used to be a second copy of the audio rule, and a second copy
+     is a rule that will eventually disagree with the first. */
+  const def = checklistDefaults(a);
+  const audioRequired = def.audio.on;
   const isAd = arch === "ad" || a.destination === "tv";
   const halfEligible =
     a.filming === "couple" &&
@@ -448,14 +571,28 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   // A line goes in if the answers force it OR the buyer asked for it on the
   // checklist. "I don't know" is deliberately not a yes — it leaves the line
   // out and shows up in the assumptions instead.
-  const wantsGraphics = polish === "full" || isAd || a.graphics === "yes";
-  /* Colour is the one item where "I don't know" is NOT a no. An explicit Yes
-     or No from the buyer wins outright; anything else falls back to what this
-     kind of video normally gets. */
-  const wantsColor = a.color === "yes" ? true : a.color === "no" ? false : COLOR_MAKING.has(a.making);
-  const wantsSecondCam =
-    arch === "event" || a.secondCam === "yes" || (variant === "premium" && arch === "branded");
-  const wantsAudio = audioRequired || a.audio === "yes";
+  /* EVERY judgment call resolves the same way: the making-type proposes, the
+     buyer disposes. `resolveChecklist` is the only place that rule lives, so
+     no item can quietly grow its own semantics — which is exactly how the old
+     code ended up ORing the buyer's "no" with its own rules and ignoring them. */
+  const wantsGraphics = resolveChecklist(a.graphics, def.graphics.on);
+  const wantsColor = resolveChecklist(a.color, def.color.on);
+  const wantsAudio = resolveChecklist(a.audio, def.audio.on);
+  const wantsDrone = resolveChecklist(a.drone, def.drone.on);
+
+  /* Second camera, in two flavours that must never both bill.
+
+     The operator brings their own body, so gear-only is worth nothing on top
+     of them — it is zeroed here rather than merely hidden in the UI, so the
+     arithmetic is right even if a stale answer says yes.
+
+     Premium adds an operator to a branded piece, which is the tier doing its
+     job rather than the making-type deciding — but an explicit No still wins,
+     or the override would be a lie in one tier out of three. */
+  const wantsOperator =
+    resolveChecklist(a.secondCamOperator, def.secondCamOperator.on) ||
+    (variant === "premium" && arch === "branded" && a.secondCamOperator !== "no");
+  const wantsGearCam = !wantsOperator && resolveChecklist(a.secondCamGear, def.secondCamGear.on);
 
   const lines: ScopeLine[] = [];
   const notes: string[] = [];
@@ -476,9 +613,25 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
     });
   }
 
-  if (wantsSecondCam) {
-    if (variant === "lean" && arch !== "event") dropped.push(["Second camera", r.secondCam]);
-    else lines.push({ key: "cam2", amt: r.secondCam, simple: "Second camera — a second angle" });
+  if (wantsOperator) {
+    if (variant === "lean" && arch !== "event") {
+      dropped.push(["Second camera + operator", r.secondCamOperator]);
+    } else {
+      lines.push({
+        key: "cam2",
+        amt: r.secondCamOperator,
+        simple: "Second camera + operator — a second angle, shot live",
+      });
+    }
+  } else if (wantsGearCam) {
+    if (variant === "lean") dropped.push(["Second camera (gear only)", r.secondCamGearOnly]);
+    else {
+      lines.push({
+        key: "cam2gear",
+        amt: r.secondCamGearOnly,
+        simple: "Second camera — extra body, no extra crew",
+      });
+    }
   }
 
   /* Sound — a starting guess only; the advisory in the quote does the honest work. */
@@ -491,7 +644,7 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   }
 
   /* Aerial */
-  if (a.drone === "yes") {
+  if (wantsDrone) {
     if (variant === "lean") dropped.push(["Drone package", r.droneDay]);
     else lines.push({ key: "drone", amt: r.droneDay, simple: "Aerial — drone package" });
   }
@@ -592,7 +745,9 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   if (!has("audio")) {
     assumptions.push(say("This quote assumes audio is recorded into the camera", a.audio));
   }
-  if (!has("cam2")) assumptions.push(say("This quote assumes one camera", a.secondCam));
+  if (!has("cam2") && !has("cam2gear")) {
+    assumptions.push(say("This quote assumes one camera", a.secondCamOperator));
+  }
   if (!has("drone")) {
     assumptions.push(say("This quote assumes no aerial or drone shots", a.drone));
   }

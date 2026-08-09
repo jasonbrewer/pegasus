@@ -47,25 +47,35 @@ export default function PublicScopePage() {
     // Wider than PageShell's max-w-2xl for the same reason the dashboard page
     // is: the tool is questions beside a sticky estimate. Padding matches.
     <main className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-6 sm:py-14">
-      <header className="mb-8">
-        {/* The H1 is the question the visitor typed into a search box, not our
-            name for the feature. "Scope Tool" is what we call it; this is what
-            they came looking for. */}
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          What should your video cost?
-        </h1>
-        <p className="mt-3 max-w-2xl text-base text-secondary">
-          Answer a few plain questions — no production jargon, no account, no email required.
-          You&apos;ll get an honest estimate and an itemised breakdown, and you&apos;ll see where
-          the real costs hide, so you walk into any quote already knowing the shape of the job.
-        </p>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          Built by the people who run the crew. Free, and yours to keep whether or not you ever
-          talk to us.
-        </p>
-      </header>
-
-      <PublicScope />
+      {/*
+       * Handed to the tool rather than rendered here, because it should appear
+       * on the FIRST question group only — see ScopeTool's `intro` prop. It is
+       * still authored in this Server Component and still server-rendered, so
+       * the H1 and the standfirst are in the initial HTML that search sees;
+       * step one is the initial state.
+       */}
+      <PublicScope
+        intro={
+          <header className="mb-8">
+            {/* The H1 is the question the visitor typed into a search box, not
+                our name for the feature. "Scope Tool" is what we call it; this
+                is what they came looking for. */}
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              What should your video cost?
+            </h1>
+            <p className="mt-3 max-w-2xl text-base text-secondary">
+              Answer a few plain questions — no production jargon, no account, no email required.
+              You&apos;ll get an honest estimate and an itemised breakdown, and you&apos;ll see
+              where the real costs hide, so you walk into any quote already knowing the shape of
+              the job.
+            </p>
+            <p className="mt-2 max-w-2xl text-sm text-muted">
+              Built by the people who run the crew. Free, and yours to keep whether or not you ever
+              talk to us.
+            </p>
+          </header>
+        }
+      />
     </main>
   );
 }
