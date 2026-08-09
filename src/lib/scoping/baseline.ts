@@ -112,12 +112,21 @@ export const BASELINE = {
     trigger: "Only if the client keeps revising past final cut.",
     help: "Protects against the endless edit — the client always knows the price of a finished product.",
   },
-  colorHour: {
-    v: 75,
+  colorDay: {
+    v: 600,
     group: "Post",
-    label: "Color finishing (per hour)",
-    trigger: "Always — hours scale with total length & polish.",
-    help: "Separate line. A short clip won't take a day.",
+    label: "Color grade (per day)",
+    trigger:
+      "Pieces where the look is part of the product — brand, product, promo, sizzle, ads, and a founder interview. Off elsewhere unless the client asks for it.",
+    help: "A colourist day, billed like an edit day. There is no sub-day grade.",
+  },
+  minsPerColorDay: {
+    v: 15,
+    group: "Post",
+    label: "Finished minutes per color day",
+    trigger: "The billing unit for grading. Total finished video ÷ this = color days.",
+    help: "A grade moves faster than an edit — 15 finished minutes a day against the edit's 4.",
+    unit: "min",
   },
   graphicsDay: {
     v: 650,

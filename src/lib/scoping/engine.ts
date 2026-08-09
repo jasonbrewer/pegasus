@@ -38,7 +38,7 @@ export type PolishKey = "quick" | "standard" | "full";
 export type CountKey = "1" | "2" | "4" | "8";
 export type LengthKey = "0.5" | "1" | "3" | "6";
 
-export type ChecklistKey = "secondCam" | "audio" | "drone" | "graphics";
+export type ChecklistKey = "secondCam" | "audio" | "drone" | "graphics" | "color";
 
 export type Answers = {
   making: string;
@@ -187,7 +187,13 @@ export const QUESTIONS: Question[] = [
  * Aerial/drone was a plain yes/no question in v1 and lives here now, so all
  * four of these get the same three-state treatment.
  */
-export const CHECKLIST: { key: ChecklistKey; label: string; help: string }[] = [
+export const CHECKLIST: {
+  key: ChecklistKey;
+  label: string;
+  help: string;
+  /** Overrides TRI_OPTS where the three states need their own wording. */
+  opts?: [TriState, string][];
+}[] = [
   {
     key: "secondCam",
     label: "A second camera?",
@@ -207,6 +213,19 @@ export const CHECKLIST: { key: ChecklistKey; label: string; help: string }[] = [
     key: "graphics",
     label: "Motion graphics?",
     help: "Titles, lower-thirds, animated elements.",
+  },
+  {
+    key: "color",
+    label: "A color grade?",
+    help: "A colourist matching and shaping the look across every shot — the difference between footage and a film.",
+    // The only checklist item whose "I don't know" is not simply a no: colour
+    // falls back to what this kind of video normally gets (COLOR_MAKING), so
+    // the wording has to say that rather than "Yes / No / I don't know".
+    opts: [
+      ["yes", "Yes, add color"],
+      ["no", "No, skip color"],
+      ["unsure", "I don't know"],
+    ],
   },
 ];
 
@@ -248,6 +267,36 @@ export const AUDIO_MAKING = new Set([
   "TV commercial",
 ]);
 
+/**
+ * The making-types that carry a colour grade BY DEFAULT.
+ *
+ * The dividing line is whether the look is part of the product. A brand film,
+ * a product piece, a sizzle reel or an ad is judged on how it looks, and an
+ * ungraded one reads as cheap however well it was shot. A testimonial, a
+ * conference recap or a safety training video is judged on whether you can
+ * hear and follow it — a grade there is money that buys the client nothing
+ * they would notice.
+ *
+ * The founder interview is the one talking-head piece on this list, and it is
+ * here for the same reason it forces a sound person: it is the CEO, it goes on
+ * the homepage, and it is the one interview anybody will look at twice.
+ *
+ * This is a DEFAULT, not a rule. The buyer's own answer on the checklist beats
+ * it in either direction — see `wantsColor` in buildScope.
+ */
+export const COLOR_MAKING = new Set([
+  "Brand video",
+  "Product video",
+  "Promo / teaser",
+  "Sizzle reel",
+  "TV commercial",
+  "Paid social ad",
+  "Founder / CEO interview",
+]);
+
+/** Whether this making-type gets a grade when the buyer hasn't said either way. */
+export const colorByDefault = (making: string): boolean => COLOR_MAKING.has(making);
+
 export const DEFAULTS: Answers = {
   making: "Testimonial",
   onCamera: "one",
@@ -263,6 +312,9 @@ export const DEFAULTS: Answers = {
   audio: "no",
   drone: "no",
   graphics: "no",
+  // Neutral, not "no": colour falls back to the making-type default until the
+  // buyer actually says one way or the other.
+  color: "unsure",
 };
 
 /* ===================== AUTO-RULES ===================== */
@@ -383,13 +435,24 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
         }`
       : `Editing to final cut — ${editDays} day${editDays > 1 ? "s" : ""}`;
 
-  const colorHours =
-    { quick: 2, standard: 4, full: 8 }[polish] + (totalMin >= 10 ? 4 : totalMin >= 5 ? 2 : 0);
+  /* ---- Colour grade ----
+     Whole days, exactly like editing, off the SAME totalMin the edit is billed
+     from — there is deliberately no second finished-minutes calculation here.
+     Rounded UP with a one-day floor, so 1–15 min is one day, 16–30 is two.
+     A grade covers more ground per day than an edit (15 min against 4), which
+     is the only difference between the two sums. */
+  const colorPerDay = Math.max(1, r.minsPerColorDay);
+  const colorDays = Math.max(1, Math.ceil(totalMin / colorPerDay));
+  const colorCost = colorDays * r.colorDay;
 
   // A line goes in if the answers force it OR the buyer asked for it on the
   // checklist. "I don't know" is deliberately not a yes — it leaves the line
   // out and shows up in the assumptions instead.
   const wantsGraphics = polish === "full" || isAd || a.graphics === "yes";
+  /* Colour is the one item where "I don't know" is NOT a no. An explicit Yes
+     or No from the buyer wins outright; anything else falls back to what this
+     kind of video normally gets. */
+  const wantsColor = a.color === "yes" ? true : a.color === "no" ? false : COLOR_MAKING.has(a.making);
   const wantsSecondCam =
     arch === "event" || a.secondCam === "yes" || (variant === "premium" && arch === "branded");
   const wantsAudio = audioRequired || a.audio === "yes";
@@ -435,11 +498,22 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
 
   /* Post */
   lines.push({ key: "edit", amt: editCost, simple: editLabel });
-  lines.push({
-    key: "color",
-    amt: colorHours * r.colorHour,
-    simple: `Color finishing — ${colorHours} hrs`,
-  });
+
+  /* Colour is a flex line, handled by the same trim the second camera and the
+     motion graphics use: lean drops it to reach its number and says so in
+     `dropped`. The exception matches graphics — an ad keeps its grade in every
+     tier, because an ungraded commercial is not a cheaper commercial, it is a
+     commercial nobody will run. */
+  if (wantsColor) {
+    if (variant === "lean" && !isAd) dropped.push(["Color grade", colorCost]);
+    else {
+      lines.push({
+        key: "color",
+        amt: colorCost,
+        simple: `Color grade — ${colorDays} day${colorDays > 1 ? "s" : ""}`,
+      });
+    }
+  }
   if (wantsGraphics) {
     const gd = totalMin > 4 || count >= 5 ? 2 : 1;
     if (variant === "lean" && !isAd) dropped.push(["Motion graphics", gd * r.graphicsDay]);
@@ -524,6 +598,19 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
   }
   if (!has("gfx")) {
     assumptions.push(say("This quote assumes no motion graphics or titles", a.graphics));
+  }
+  /* Colour gets its own sentence rather than going through say()'s "you
+     weren't sure" flag: on this one question "I don't know" is not an
+     unanswered question, it is the buyer letting us use the normal answer for
+     what they're making — so the receipt should say which way that went and
+     why. Only when the grade is genuinely out; a lean trim is reported by
+     `dropped` instead. */
+  if (!wantsColor) {
+    assumptions.push(
+      a.color === "no"
+        ? "This quote assumes no color grade — you asked to skip it."
+        : `This quote assumes no color grade, which is normal for a ${a.making.toLowerCase()}. Ask for one if the look matters.`
+    );
   }
   if (!has("lic")) assumptions.push(say("This quote assumes no licensed music"));
   if (!has("travel")) {

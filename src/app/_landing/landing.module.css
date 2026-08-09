@@ -42,14 +42,14 @@
 
 .eyebrow{
   font-family:var(--font-geist-mono), monospace;
-  font-weight:500;font-size:0.75rem;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:500;font-size:0.6875rem;letter-spacing:.22em;text-transform:uppercase;
   color:var(--brass);display:inline-flex;align-items:center;gap:10px;
 }
 .eyebrow::before,.eyebrow::after{content:"";width:22px;height:1px;background:var(--mist);}
 
 .title{
   font-family:var(--font-fraunces), Georgia, serif;
-  font-weight:500;font-size:clamp(2.75rem,6vw,4.75rem);
+  font-weight:500;font-size:clamp(2.4rem,5.4vw,4.2rem);
   line-height:1.05;letter-spacing:-.02em;margin:20px auto 0;
   /* 16ch for the measure, never wider than the column it sits in. */
   max-width:min(16ch,100%);text-wrap:balance;
@@ -57,22 +57,22 @@
      break. It guarantees a long one can never push the page sideways. */
   overflow-wrap:break-word;
 }
-/* The clamp floor is 2.75rem, which at the raised root is ~49px — wider than
-   the longest word in the headline fits on a 320px phone. Only the smallest
-   class of screen needs the floor lowered; 390px and up keep the full size. */
+/* Even the eased floor above is wider than the headline's longest word fits on
+   a 320px phone. Only the smallest class of screen needs it lowered further;
+   390px and up keep the full size. */
 @media (max-width:360px){
-  .title{font-size:2.25rem;}
+  .title{font-size:2rem;}
 }
 
 .irisHero{width:52px;height:52px;margin:30px auto 12px;display:block;color:var(--pine);}
 .payoff{
   font-family:var(--font-fraunces), Georgia, serif;font-style:italic;font-weight:500;
-  font-size:clamp(1.7rem,3.6vw,2.7rem);letter-spacing:-.01em;margin:0;color:var(--pine);
+  font-size:clamp(1.5rem,3.2vw,2.4rem);letter-spacing:-.01em;margin:0;color:var(--pine);
 }
 
 .ctaRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:30px;}
 .btn{
-  font-weight:600;font-size:0.97rem;border-radius:999px;padding:15px 30px;line-height:1;
+  font-weight:600;font-size:0.875rem;border-radius:999px;padding:15px 30px;line-height:1;
   text-decoration:none;display:inline-flex;align-items:center;gap:9px;border:1.5px solid transparent;
   transition:transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
 }
@@ -82,14 +82,14 @@
 .btnGhost{background:transparent;color:var(--ink);border-color:var(--ink);}
 .btnGhost:hover{background:var(--ink);color:var(--paper);transform:translateY(-1px);}
 
-.reassure{margin:26px auto 0;font-size:0.875rem;color:var(--stone);display:inline-flex;align-items:center;gap:9px;}
+.reassure{margin:26px auto 0;font-size:0.8125rem;color:var(--stone);display:inline-flex;align-items:center;gap:9px;}
 .tick{color:var(--brass);font-family:var(--font-geist-mono), monospace;}
 
 /* ---- Differentiators ---- */
 .diff{padding:40px 0 40px;}
 .sectionHead{display:flex;align-items:baseline;gap:18px;margin-bottom:38px;}
 .label{
-  font-family:var(--font-geist-mono), monospace;font-size:0.75rem;font-weight:500;
+  font-family:var(--font-geist-mono), monospace;font-size:0.6875rem;font-weight:500;
   letter-spacing:.2em;text-transform:uppercase;color:var(--stone);white-space:nowrap;
 }
 .rule{flex:1;height:1px;background:var(--mist);align-self:center;}
@@ -101,13 +101,13 @@
 .cell{background:var(--card);padding:30px 30px 32px;transition:background .18s ease;}
 .cell:hover{background:#FDFCF9;}
 .mark{width:20px;height:20px;color:var(--brass);margin-bottom:16px;display:block;}
-.cellTitle{font-weight:600;font-size:1.12rem;letter-spacing:-.01em;margin:0 0 8px;line-height:1.25;}
-.cellBody{margin:0;color:var(--stone);font-size:.97rem;line-height:1.58;}
+.cellTitle{font-weight:600;font-size:1rem;letter-spacing:-.01em;margin:0 0 8px;line-height:1.25;}
+.cellBody{margin:0;color:var(--stone);font-size:0.875rem;line-height:1.58;}
 
 /* ---- Operate link (home) ---- */
 .operate{padding:92px 0 96px;text-align:center;}
 .operateLink{
-  font-weight:600;font-size:1.05rem;display:inline-flex;align-items:center;gap:12px;
+  font-weight:600;font-size:0.9375rem;display:inline-flex;align-items:center;gap:12px;
   text-decoration:none;padding-bottom:3px;border-bottom:2px solid var(--brass);color:var(--ink);
 }
 .operateLink:hover{gap:16px;}
@@ -117,7 +117,7 @@
 /* ---- Article (How we operate) ---- */
 .article{padding:74px 0 20px;}
 .backlink{
-  font-family:var(--font-geist-mono), monospace;font-size:0.75rem;letter-spacing:.12em;
+  font-family:var(--font-geist-mono), monospace;font-size:0.6875rem;letter-spacing:.12em;
   text-transform:uppercase;color:var(--stone);text-decoration:none;display:inline-flex;
   align-items:center;gap:8px;margin-bottom:34px;
 }
@@ -125,13 +125,13 @@
 .articleHead{max-width:64ch;margin:0 auto;}
 .articleTitle{
   font-family:var(--font-fraunces), Georgia, serif;font-weight:500;
-  font-size:clamp(2.2rem,4.4vw,3.3rem);line-height:1.06;letter-spacing:-.02em;
+  font-size:clamp(1.95rem,3.9vw,2.9rem);line-height:1.06;letter-spacing:-.02em;
   margin:18px 0 0;text-wrap:balance;
 }
 .prose{max-width:64ch;margin:34px auto 0;}
-.prose p{margin:0 0 1.15em;color:#2C2A27;font-size:1.08rem;line-height:1.74;}
+.prose p{margin:0 0 1.15em;color:#2C2A27;font-size:0.9375rem;line-height:1.74;}
 .prose p:first-child{
-  font-family:var(--font-fraunces), Georgia, serif;font-weight:500;font-size:1.34rem;
+  font-family:var(--font-fraunces), Georgia, serif;font-weight:500;font-size:1.2rem;
   line-height:1.5;color:var(--ink);letter-spacing:-.01em;
 }
 
