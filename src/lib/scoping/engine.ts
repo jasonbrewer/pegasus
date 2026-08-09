@@ -486,6 +486,9 @@ export const resolveChecklist = (answer: TriState, fallback: boolean): boolean =
 
 /* ========================= ENGINE ========================= */
 
+/** "1 day" / "3 days". One speller, so no two per-day lines phrase it apart. */
+const dayLabel = (days: number) => `${days} day${days > 1 ? "s" : ""}`;
+
 export const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 
 /**
@@ -613,40 +616,54 @@ export function buildScope(a: Answers, B: Baseline, variant: Variant): Scope {
     });
   }
 
+  /* PER SHOOT DAY, like the shooter above — a second camera is hired for the
+     whole shoot, not once. These were flat, which quietly under-quoted every
+     multi-day job: a 3-day shoot with an operator was $1,400 instead of
+     $4,200. `days` is the same value the Filming line bills from; there is
+     deliberately no second day count anywhere in this function. */
   if (wantsOperator) {
     if (variant === "lean" && arch !== "event") {
-      dropped.push(["Second camera + operator", r.secondCamOperator]);
+      dropped.push(["Second camera + operator", days * r.secondCamOperator]);
     } else {
       lines.push({
         key: "cam2",
-        amt: r.secondCamOperator,
-        simple: "Second camera + operator — a second angle, shot live",
+        amt: days * r.secondCamOperator,
+        simple: `Second camera + operator — a second angle, shot live — ${dayLabel(days)}`,
       });
     }
   } else if (wantsGearCam) {
-    if (variant === "lean") dropped.push(["Second camera (gear only)", r.secondCamGearOnly]);
-    else {
+    if (variant === "lean") {
+      dropped.push(["Second camera (gear only)", days * r.secondCamGearOnly]);
+    } else {
       lines.push({
         key: "cam2gear",
-        amt: r.secondCamGearOnly,
-        simple: "Second camera — extra body, no extra crew",
+        amt: days * r.secondCamGearOnly,
+        simple: `Second camera — extra body, no extra crew — ${dayLabel(days)}`,
       });
     }
   }
 
-  /* Sound — a starting guess only; the advisory in the quote does the honest work. */
+  /* Sound — a starting guess only; the advisory in the quote does the honest
+     work. This one was already billing per shoot day and is unchanged. */
   if (wantsAudio) {
     lines.push({
       key: "audio",
       amt: days * r.audioDay,
-      simple: `Sound specialist — ${days} day${days > 1 ? "s" : ""}`,
+      simple: `Sound specialist — ${dayLabel(days)}`,
     });
   }
 
-  /* Aerial */
+  /* Aerial — also per shoot day. The drone is on the call sheet for as long as
+     the crew is, whether or not it flies every hour of it. */
   if (wantsDrone) {
-    if (variant === "lean") dropped.push(["Drone package", r.droneDay]);
-    else lines.push({ key: "drone", amt: r.droneDay, simple: "Aerial — drone package" });
+    if (variant === "lean") dropped.push(["Drone package", days * r.droneDay]);
+    else {
+      lines.push({
+        key: "drone",
+        amt: days * r.droneDay,
+        simple: `Aerial — drone package — ${dayLabel(days)}`,
+      });
+    }
   }
 
   /* Post */

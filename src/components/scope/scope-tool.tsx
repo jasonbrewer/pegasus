@@ -505,7 +505,9 @@ function Estimate({
 
   const copyIt = async () => {
     const body = scope.lines.map((l) => `  ${l.simple} — ${fmt(l.amt)}`).join("\n");
-    const assumes = scope.assumptions.map((s) => `  ${s}`).join("\n");
+    // Assumptions AND the teaching notes, because they now sit together under
+    // one disclosure — what gets copied should be what that disclosure holds.
+    const assumes = [...scope.assumptions, ...scope.notes].map((s) => `  ${s}`).join("\n");
     const text = `SCOPE — ${answers.making} (${active})\n${body}\n  TOTAL — ${fmt(
       scope.total
     )}\n\n${assumes}\n\nIncludes rough, fine, and final cut. Later changes: ${fmt(
@@ -607,11 +609,21 @@ function Estimate({
           people who want it will open it. "Copy this scope" below is outside
           this element on purpose and still copies every line of it, open or
           shut. */}
-      {scope.assumptions.length > 0 && (
-        <details className={`${styles.assumes} ${styles.disclosure} mt-4`}>
-          <summary className={styles.eyebrow}>
-            This quote assumes… ({scope.assumptions.length})
-          </summary>
+      {/* The teaching notes moved IN here with the assumptions, and the boxes
+          came off: green text, matching the judgment-call notes. The box
+          treatment is for a single note that has to be noticed — three of them
+          stacked under a price is a wall, which is the same problem the
+          judgment step had.
+
+          The sound advisory keeps its own paragraph at the end because it
+          stands on every quote whatever the answers, and it is the one line a
+          buyer is most likely to get wrong on their own. */}
+      <details className={`${styles.assumes} ${styles.disclosure} mt-4`}>
+        <summary className={styles.eyebrow}>
+          This quote assumes… ({scope.assumptions.length + scope.notes.length + 1})
+        </summary>
+
+        {scope.assumptions.length > 0 && (
           <ul className="mt-2 flex flex-col gap-1">
             {scope.assumptions.map((s) => (
               <li key={s} className="text-sm">
@@ -619,26 +631,21 @@ function Estimate({
               </li>
             ))}
           </ul>
-        </details>
-      )}
+        )}
 
-      {scope.notes.length > 0 && (
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 space-y-2">
           {scope.notes.map((n, i) => (
-            <p key={i} className={styles.teach}>
+            <p key={i} className={`text-sm ${styles.stateNote}`}>
               {n}
             </p>
           ))}
+          <p className={`text-sm ${styles.stateNote}`}>
+            Sound is genuinely hard to predict — too many variables to pin down here. Ask your
+            production professional whether this shoot needs a dedicated audio person
+            {scope.audioRequired ? " (we've included one as a starting point)" : ""}.
+          </p>
         </div>
-      )}
-
-      {/* Stands on every quote, whatever the answers — sound is the line a
-          buyer is most likely to get wrong on their own. */}
-      <p className={`${styles.teach} mt-4`}>
-        Sound is genuinely hard to predict — too many variables to pin down here. Ask your
-        production professional whether this shoot needs a dedicated audio person
-        {scope.audioRequired ? " (we've included one as a starting point)" : ""}.
-      </p>
+      </details>
 
       <p className={`mt-4 text-sm ${styles.muted}`}>
         Includes rough, fine, and final cut. Changes after that run {fmt(BASELINE.changesHour.v)}
@@ -725,6 +732,7 @@ export function ScopeTool({
   // underneath them on a phone — and scrolling to the hidden one goes nowhere.
   const estimateDesktopRef = useRef<HTMLDivElement>(null);
   const estimateMobileRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const scopes = useMemo(
     () => ({
@@ -864,10 +872,25 @@ export function ScopeTool({
    * to put the number in front of them on a phone, where it is below the fold.
    */
   const showEstimate = () => {
+    /*
+     * DOWN to the full breakdown, never up to the running total.
+     *
+     * The running total is a ticker that has been on screen the whole way
+     * through; sending someone back up to it at the finish is an answer to a
+     * question they already had. The order below is the order of "most like a
+     * finished result": the result section on the public page, then the full
+     * sheet the phone lays out underneath the questions, and only then the
+     * desktop column — which is a fallback, and the one case where the target
+     * is beside rather than below.
+     *
+     * offsetParent is null for a display:none element, which is how a hidden
+     * breakpoint is skipped rather than scrolled to and landed nowhere.
+     */
+    const visible = (el: HTMLDivElement | null) => (el?.offsetParent ? el : null);
     const target =
-      (estimateMobileRef.current?.offsetParent ? estimateMobileRef.current : null) ??
-      estimateDesktopRef.current ??
-      estimateMobileRef.current;
+      visible(resultRef.current) ??
+      visible(estimateMobileRef.current) ??
+      visible(estimateDesktopRef.current);
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -963,7 +986,11 @@ export function ScopeTool({
       {/* The public page's CTA panel. Full width and below both columns, so it
           reads as what comes after the estimate rather than as another thing
           competing with it. */}
-      {isLast && result && <div className="mt-10">{result(progress)}</div>}
+      {isLast && result && (
+        <div ref={resultRef} className="mt-10 scroll-mt-4">
+          {result(progress)}
+        </div>
+      )}
     </div>
   );
 }
