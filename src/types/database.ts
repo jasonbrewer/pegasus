@@ -21,6 +21,14 @@ export type ApplicationStatus = "submitted" | "shortlisted" | "rejected" | "hire
 export type AccountStatus = "pending" | "approved" | "blocked";
 /** Batch 7 — which end CTA a public scoping session pressed. Null = neither. */
 export type ScopeCta = "call_me" | "signup";
+/**
+ * Which build a scoping session came from.
+ *
+ * Not a Postgres enum — it is a text column with a check constraint and an
+ * allow-list inside record_scope_session() (20260801000016). Adding a build
+ * means adding it in all three places at once.
+ */
+export type ScopeSource = "productioncircles" | "8posts";
 
 export interface Database {
   public: {
@@ -322,6 +330,13 @@ export interface Database {
           contact_phone: string | null;
           referral_source: Record<string, string> | null;
           last_step_reached: string | null;
+          /**
+           * Which build captured this session — the hosted route, or the
+           * static bundle `npm run build:scope` produces for another site.
+           * Set on the first write and never rewritten, and clamped by
+           * record_scope_session() to a value the schema knows.
+           */
+          source: ScopeSource;
           created_at: string;
           updated_at: string;
         };
@@ -415,6 +430,13 @@ export interface Database {
           p_contact_phone?: string | null;
           p_referral_source?: Record<string, string> | null;
           p_last_step_reached?: string | null;
+          /**
+           * Which build is calling. Omitted by this app, which is what the
+           * parameter's SQL default covers; the static bundle passes its own.
+           * Unrecognised values fall back to the default rather than creating
+           * a bucket nobody is filtering on.
+           */
+          p_source?: ScopeSource | null;
         };
         /** void — it can never be used to read a row back. */
         Returns: undefined;

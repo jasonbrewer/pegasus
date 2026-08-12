@@ -16,6 +16,10 @@ const eslintConfig = defineConfig([
     // scope tool's source prototype, kept verbatim so the port can be diffed
     // against it. It is never built or imported.
     "docs/**",
+    // Build output of `npm run build:scope` — minified third-party code, and
+    // not ours to lint. It is gitignored too; this is for a working tree that
+    // has just built it.
+    "dist/**",
   ]),
 ]);
 

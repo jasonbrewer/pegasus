@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      The page's own <head>, written out rather than generated. The hosted
+      route builds this from a Next `metadata` export, which needs a server
+      render to exist; a static file says it plainly instead. Keep the title
+      and the description in step with each other if either is reworded.
+    -->
+    <title>What should your video cost? Free estimate</title>
+    <meta
+      name="description"
+      content="Get an honest, itemised estimate for your video in about two minutes — no account, no sales call, no email required. See where the real costs hide, then book a call if you want one."
+    />
+    <link rel="canonical" href="%%CANONICAL%%" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="What should your video cost? Free estimate" />
+    <meta
+      property="og:description"
+      content="An honest, itemised estimate for your video in about two minutes — no account, no email required."
+    />
+    <meta property="og:url" content="%%CANONICAL%%" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="What should your video cost? Free estimate" />
+    <meta
+      name="twitter:description"
+      content="An honest, itemised estimate for your video in about two minutes — no account, no email required."
+    />
+
+%%FONTS%%
+    <!-- Relative, so the folder works at /scope/, at /scope.html, or anywhere
+         else it is dropped. The ?v= is the build stamp: a static host caches
+         hard, and a rate change that ships behind a stale stylesheet is worse
+         than a cache miss. -->
+    <link rel="stylesheet" href="scope.css?v=%%STAMP%%" />
+  </head>
+  <body>
+    <div id="scope-root"></div>
+
+    <noscript>
+      <p style="max-width: 34rem; margin: 4rem auto; padding: 0 1.25rem; line-height: 1.6">
+        The estimator needs JavaScript to add up — it does all of its arithmetic in your browser
+        and sends nothing anywhere to work out a number. Turn JavaScript on for this page, or book
+        a call and we&rsquo;ll price the job with you.
+      </p>
+    </noscript>
+
+    <script src="scope.js?v=%%STAMP%%" defer></script>
+%%ANALYTICS%%
+  </body>
+</html>

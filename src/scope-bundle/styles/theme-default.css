@@ -1,0 +1,16 @@
+/*
+ * The tool's own look, unchanged — the other half of the one cosmetic toggle
+ * (`npm run build:scope -- --theme=default`).
+ *
+ * src/app/tokens.css already carries the whole palette, light and dark, so
+ * there is nothing to remap here. The only thing missing outside the hosted
+ * app is the type: next/font declares these three variables on <html>, and a
+ * static page has to say them itself. The families are the same ones the app
+ * loads, so the page renders as the hosted route does.
+ */
+
+:root {
+  --font-geist-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-geist-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-fraunces: "Fraunces", Georgia, "Times New Roman", serif;
+}

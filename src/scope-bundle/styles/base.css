@@ -1,0 +1,23 @@
+/*
+ * Everything both builds of the bundle share: Tailwind's utilities and the
+ * app's design tokens.
+ *
+ * `source(none)` turns OFF Tailwind's automatic project scan and the @source
+ * lines below turn it back on for four files — the three in this directory and
+ * the shared tool. The hosted app scans the whole repo, which is right for an
+ * app; here it is not. This page is dropped onto somebody else's website and
+ * has to be accountable line by line, so its stylesheet is generated from the
+ * files it actually renders and nothing else.
+ *
+ * tokens.css is imported, never copied. It is the same file src/app/globals.css
+ * imports, which is what stops the two builds' palettes drifting apart — and
+ * why globals.css was split in two when this bundle was added.
+ */
+
+@import "tailwindcss" source(none);
+@import "../../app/tokens.css";
+
+@source "../entry.tsx";
+@source "../result.tsx";
+@source "../booking.tsx";
+@source "../../components/scope/scope-tool.tsx";
