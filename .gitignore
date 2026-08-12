@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# static scope bundle (npm run build:scope) — built, never committed
+/dist/

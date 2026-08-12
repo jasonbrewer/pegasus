@@ -1,0 +1,109 @@
+/*
+ * The host site's palette and type, mapped onto the tool's own tokens.
+ *
+ * Nothing here restyles a component. The tool asks for --surface, --content,
+ * --sun and the rest; this file decides what those resolve to, exactly the way
+ * src/app/tokens.css does for the hosted route. That is why the tool can wear
+ * a different skin without a fork: one file of variables, no component edits,
+ * and a rate or a question added upstream still lands here on the next build.
+ *
+ * FIXED DARK, NOT A SCHEME SWITCH. tokens.css re-themes under
+ * prefers-color-scheme; the site this bundle is dropped into is dark for
+ * everybody. Every declaration below is unconditional and sits after that
+ * media query in the output, so it wins in both schemes. `color-scheme: dark`
+ * is what makes the native bits — the caret, scrollbars, autofill — agree.
+ */
+
+:root {
+  /*
+   * The three families the components name. The hosted app defines these with
+   * next/font; here they are the site's own trio, loaded by the <link> in the
+   * page head. Same variable names, so scope.module.css needs no edit.
+   */
+  --font-geist-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-geist-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-fraunces: "Fraunces", Georgia, "Times New Roman", serif;
+
+  color-scheme: dark;
+
+  /* ---- Surfaces, back to front ---- */
+  --canvas: #17181c;
+  --surface: #1f2126;
+  /* The site's --field (#26282E) is a control FILL, and this is the token the
+     tool uses for hover fills and inset rows — same job, so same value. The
+     border case is handled below. */
+  --surface-muted: #26282e;
+
+  /* ---- Text, most to least prominent ---- */
+  --content: #f3f1ec;
+  /* The site names ink and muted and nothing between them. The tool has three
+     levels, and collapsing --secondary onto --muted flattens every standfirst
+     and body paragraph into the same grey as the small print. Interpolated
+     between the two, and it clears AA on both --canvas and --surface. */
+  --secondary: #d3d1ca;
+  --muted: #a7a69e;
+
+  /* ---- Lines ---- */
+  --line: #33353b;
+  --line-soft: #26282e;
+  /*
+   * DERIVED, and the one value that is not lifted straight from the site's
+   * list. --field bounds a control you can click or type in, and the site's
+   * #26282E is a fill sitting a hair off the card colour — as a border it is
+   * invisible (about 1.1:1 against --surface), which would leave every option
+   * pill and every input with no visible edge. Lightened until the outline
+   * reads without becoming a second text colour.
+   */
+  --field: #4a4d55;
+  --strong: #f3f1ec;
+
+  /* ---- Inverted actions — the primary buttons ---- */
+  --accent: #e8814a;
+  --accent-hover: #f0946a;
+  --accent-ink: #1a1205;
+
+  /* ---- Status ---- */
+  --notice: #302607;
+  --notice-edge: #63501d;
+  --notice-ink: #fcd34d;
+
+  --danger: #331e1b;
+  --danger-edge: #e07a6e;
+  --danger-ink: #e07a6e;
+
+  --success: #16302a;
+  --success-edge: #245c3c;
+  --success-ink: #3da88c;
+
+  --flag-yellow: #fbbf24;
+  --flag-green: #3da88c;
+  --flag-blue: #7ba7e0;
+  --flag-red: #e07a6e;
+}
+
+/*
+ * The tool's own three accents.
+ *
+ * scope.module.css declares these on its root element, so an ancestor cannot
+ * override them — the element's own rule would win. `#scope-app > div` is that
+ * same element (see the comment on <main id="scope-app"> in entry.tsx) and
+ * outranks a class selector, which is what lets the site's accents through
+ * without touching the shared module.
+ *
+ * It is also why this selector is order-independent: it beats both the
+ * module's base rule and its dark-scheme rule on specificity, wherever the
+ * bundler happens to concatenate them.
+ */
+#scope-app > div {
+  --sun: #e8814a;
+  --sun-ink: #1a1205;
+  /* The tinted fill behind a selected card and the highlighter under "$3,500
+     gets you…". The site gives no soft variant, so this is the accent dropped
+     onto the canvas until text stays readable on it. */
+  --sun-soft: #3a2312;
+  --teach: #3da88c;
+  --teach-soft: #16302a;
+  --flag: #e07a6e;
+  --flag-soft: #331e1b;
+  --focus: #7ba7e0;
+}

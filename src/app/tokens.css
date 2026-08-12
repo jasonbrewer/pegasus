@@ -1,0 +1,212 @@
+/*
+ * Semantic colour tokens.
+ *
+ * The dark-mode bug this replaces: the Next starter flipped --background and
+ * --foreground under prefers-color-scheme, so the page went near-black — while
+ * every component still asked for light-palette utilities (text-gray-500,
+ * bg-white, border-gray-200). Dark grey on near-black, everywhere at once.
+ *
+ * The fix is to stop naming colours by their shade and start naming them by
+ * their job. A component says text-muted or bg-surface; what those resolve to
+ * is decided here, once, and swaps with the media query below. Nothing
+ * downstream needs a dark: variant — which is also why nothing downstream can
+ * forget one.
+ *
+ * Every pairing is checked against WCAG AA (4.5:1 for body text, 3:1 for
+ * borders and large text) in both schemes.
+ */
+
+:root {
+  /* Surfaces, back to front. */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+
+  /* Text, most to least prominent. All three clear AA on every surface.
+     There is deliberately no fourth, dimmer level: on a white canvas a shade
+     below --muted cannot reach 4.5:1, which is exactly why the old
+     text-gray-400 (2.54:1) was unreadable long before dark mode existed. */
+  --content: #171717;
+  --secondary: #374151;
+  --muted: #6b7280;
+
+  /* Lines. --line outlines cards, --field bounds a control you can type in or
+     click, --line-soft separates rows inside a card. */
+  --line: #e5e7eb;
+  --line-soft: #f3f4f6;
+  --field: #d1d5db;
+  --strong: #171717;
+
+  /* Inverted actions — the primary buttons. */
+  --accent: #000000;
+  --accent-hover: #1f2937;
+  --accent-ink: #ffffff;
+
+  /* Status. -edge is the border, -ink is the text on the tinted fill. */
+  --notice: #fffbeb;
+  --notice-edge: #fde68a;
+  --notice-ink: #92400e;
+
+  --danger: #fef2f2;
+  --danger-edge: #fca5a5;
+  --danger-ink: #b91c1c;
+
+  --success: #f0fdf4;
+  --success-edge: #bbf7d0;
+  --success-ink: #15803d;
+
+  /* 5.1 — the triage star's four states. These are NOT the status tints
+     above: a flag carries no meaning the app assigns, so reusing --danger
+     would say "rejected" when the employer only meant "red". They are their
+     own scale, and each one clears 3:1 against --surface (WCAG 1.4.11,
+     non-text contrast) in the theme it belongs to. The light yellow is a deep
+     gold for that reason — a bright #eab308 star manages 1.9:1 on white and
+     vanishes. */
+  --flag-yellow: #a16207;
+  --flag-green: #15803d;
+  --flag-blue: #2563eb;
+  --flag-red: #dc2626;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Cards sit a step above the canvas rather than being outlined only, so
+       the page keeps its structure once the borders are this quiet. */
+    --canvas: #0a0a0a;
+    --surface: #141416;
+    --surface-muted: #1b1b1f;
+
+    --content: #ededed;
+    --secondary: #c9cbd1;
+    --muted: #a1a5ae;
+
+    --line: #2e2e34;
+    --line-soft: #212126;
+    --field: #3f3f46;
+    --strong: #ededed;
+
+    /* Black-on-dark is invisible, so the primary button inverts the other way. */
+    --accent: #ededed;
+    --accent-hover: #ffffff;
+    --accent-ink: #0a0a0a;
+
+    /* Dark status tints: a deep desaturated fill with bright ink, rather than
+       the light theme's pale fill with dark ink. */
+    --notice: #302607;
+    --notice-edge: #63501d;
+    --notice-ink: #fcd34d;
+
+    --danger: #331519;
+    --danger-edge: #7a353d;
+    --danger-ink: #fca5a5;
+
+    --success: #102b1d;
+    --success-edge: #245c3c;
+    --success-ink: #6ee7b7;
+
+    /* Same four flags, lifted for the dark surface (6.6:1 – 11:1 on
+       --surface). A star that reads as gold on white has to be brighter here
+       to read as gold at all. */
+    --flag-yellow: #fbbf24;
+    --flag-green: #4ade80;
+    --flag-blue: #60a5fa;
+    --flag-red: #f87171;
+
+    /* Makes native controls — select, date inputs, scrollbars, the caret —
+       render dark. Without it the form widgets stay light-on-light. */
+    color-scheme: dark;
+  }
+}
+
+/*
+ * Registered with Tailwind so `bg-surface`, `text-muted`, `border-line` and the
+ * rest exist as utilities. `inline` keeps them pointing at the live variable,
+ * which is what lets the media query above re-theme the whole app.
+ */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-content: var(--content);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-field: var(--field);
+  --color-strong: var(--strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-notice: var(--notice);
+  --color-notice-edge: var(--notice-edge);
+  --color-notice-ink: var(--notice-ink);
+
+  --color-danger: var(--danger);
+  --color-danger-edge: var(--danger-edge);
+  --color-danger-ink: var(--danger-ink);
+
+  --color-success: var(--success);
+  --color-success-edge: var(--success-edge);
+  --color-success-ink: var(--success-ink);
+
+  --color-flag-yellow: var(--flag-yellow);
+  --color-flag-green: var(--flag-green);
+  --color-flag-blue: var(--flag-blue);
+  --color-flag-red: var(--flag-red);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/*
+ * THE BASE TYPE SIZE FOR THE WHOLE SITE.
+ *
+ * Until now nothing set this anywhere — no html rule, no body font-size, no
+ * Tailwind base layer (v4 is CSS-first and there is no tailwind.config). The
+ * site simply inherited the browser default of 16px, and every rem-sized
+ * utility in the app resolved against that.
+ *
+ * A PERCENTAGE, NOT `18px`. They are the same thing for the majority who never
+ * touch their browser settings — 112.5% of 16 is 18. They are not the same
+ * thing for anyone who has already set a larger default because they need one:
+ * `font-size: 18px` OVERRIDES that person's preference and can make the site
+ * smaller than they asked for, while a percentage scales from whatever they
+ * chose. Someone running a 20px default gets 22.5px here. That is the whole
+ * reason this is a ratio.
+ *
+ * Everything sized in rem/em moves with it, which is nearly all of the app:
+ * every Tailwind text-* utility (and every Tailwind spacing utility, so type
+ * and padding grow together rather than text swelling inside boxes that stayed
+ * put), plus both CSS modules — their font sizes were converted from px to rem
+ * alongside this change, or the scope tool and the landing hero would have
+ * been the two places on the site that did NOT get bigger.
+ *
+ * scope.module.css converts its control padding too, since a pill's box should
+ * track its label. landing.module.css keeps its px spacing on purpose: that is
+ * a bespoke hero composition, not type-relative rhythm, and its headings were
+ * already clamp(rem) so they scale on their own.
+ */
+html {
+  font-size: 112.5%; /* 18px at the 16px browser default */
+}
+
+body {
+  background: var(--canvas);
+  color: var(--content);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/*
+ * The browser derives its default placeholder colour from the input's own
+ * colour, which lands too faint in both schemes. Pin it to the token instead.
+ */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}

@@ -220,18 +220,74 @@ and "anon may never select" cannot both be true of a policy-only design.
 There is no admin UI for these leads yet — read them from the Supabase SQL editor:
 
 ```sql
-select created_at, contact_name, contact_email, contact_phone, making_type,
+select created_at, source, contact_name, contact_email, contact_phone, making_type,
        shoot_location, budget_input, computed_estimate, answers, referral_source
 from public.scope_sessions
 where cta_clicked = 'call_me'
 order by created_at desc;
 ```
 
+`source` says which build captured the session — `'productioncircles'` for this app, `'8posts'` for
+the static bundle below. Add `where source = 'productioncircles'` to see only this site's leads.
+
 `answers` is the whole intake, keyed and valued in `src/lib/scoping/engine.ts`'s vocabulary, so it
 groups cleanly and keeps its meaning after the on-screen wording changes — e.g.
 `where answers->>'hire' = 'import'` for the jobs open to bringing crew in. Two keys are bucket
 codes rather than prose: `count` (`COUNT_OPTS` — `"4"` = a handful, 4–6) and `each` (`LEN_OPTS` —
 `"3"` = a few minutes).
+
+## The static scope bundle (`npm run build:scope`)
+
+The same tool, built as three flat files that run on any web host with no Node, no Next and no
+session — for putting the scoper on a site that is not this app.
+
+```bash
+npm run build:scope                       # dist/scope/ — host site's look, GA on
+npm run build:scope -- --theme=default    # this app's look instead, GA off
+npm run build:scope -- --no-ga --out=/tmp/scope
+```
+
+Upload the three files in `dist/scope/` together, keeping them in one folder — the page links its
+stylesheet and script by relative path, so it works at `/scope/`, at `/scope.html`, or anywhere
+else. Nothing deploys automatically; the build prints where the files are and a human uploads them.
+
+**It is a re-wrap, not a second tool.** `src/scope-bundle/` contains no questions, no rates and no
+arithmetic. esbuild bundles the same `src/components/scope/scope-tool.tsx` this app renders,
+reading the same `src/lib/scoping/engine.ts` and the same `src/lib/scoping/baseline.ts`, and
+Tailwind emits the utilities that component asks for. Change a rate, rebuild, re-upload — both
+tools moved together. That is the whole reason it exists instead of a hand-ported copy, which
+starts drifting the day a rate changes.
+
+Why not `output: 'export'`: static export is an app-wide setting, and this app uses server actions,
+a proxy, cookie auth and dynamic routes — all unsupported. It would fail on every other route and
+still ship a framework runtime around one page.
+
+What the bundle has to do differently, having no server:
+
+| Hosted route | Bundle |
+| --- | --- |
+| Session id minted server-side, httpOnly cookie | `crypto.randomUUID()` in `localStorage` |
+| Server actions re-validate, then call the RPC | `fetch()` straight to the RPC, SQL still clamps |
+| `next/font` for the three families | The families the page's `<head>` loads |
+| Two CTAs, one of them account signup | One CTA, the host site's existing booking calendar |
+| `source = 'productioncircles'` | `source = '8posts'` |
+
+The session-id difference is the one worth understanding rather than skimming: the token becomes
+readable by script on that page. It is still 122 bits of CSPRNG entropy, `record_scope_session()`
+still returns void so holding one reveals nothing, and `anon` still has no read path to the table
+at all — the worst case is a write over an unclaimed session's own fields. The reasoning is
+written out at the top of `src/scope-bundle/capture.ts`.
+
+Configuration is environment, not a config file: `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` from `.env.local` (or `SCOPE_SUPABASE_URL` /
+`SCOPE_SUPABASE_ANON_KEY` to point a build at a different project). The build refuses to run
+without them rather than shipping a page that silently captures nothing. The anon key is public by
+design and is in the page's JavaScript on every build; the service-role key must never go near it.
+
+The build also refuses to finish if any shipped file names this product — see `FORBIDDEN` in
+`scripts/build-scope.mjs`. That guard is there because the likeliest way a name gets onto the other
+site is not somebody typing it: it is a comment or a support address riding along inside a shared
+file that gets imported here for the first time.
 
 ## Access control: a curated community
 
